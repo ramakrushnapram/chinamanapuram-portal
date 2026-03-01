@@ -194,7 +194,7 @@ export default function FamilyDirectory() {
   const isLoggedIn = !!user;
 
   const [families,      setFamilies]      = useState([]);
-  const [loading,       setLoading]       = useState(true);
+  const [loading,       setLoading]       = useState(true); // eslint-disable-line no-unused-vars
   const [search,        setSearch]        = useState('');
   const [showAddModal,  setShowAddModal]  = useState(false);
   const [editingFamily, setEditingFamily] = useState(null);

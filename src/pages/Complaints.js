@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import {
-  collection, addDoc, getDocs, onSnapshot,
+  collection, addDoc, onSnapshot,
   query, orderBy, serverTimestamp, writeBatch, doc,
 } from 'firebase/firestore';
 
@@ -156,7 +156,7 @@ export default function Complaints() {
   const { user } = useAuth();
   const [tab,        setTab]        = useState('submit');
   const [complaints, setComplaints] = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [loading,    setLoading]    = useState(true); // eslint-disable-line no-unused-vars
   const [form,       setForm]       = useState(EMPTY_FORM);
   const [errors,     setErrors]     = useState({});
   const [submitted,  setSubmitted]  = useState(null);
