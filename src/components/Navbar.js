@@ -55,7 +55,9 @@ export default function Navbar() {
           </div>
           <div className="gov-topbar-right">
             <div className="gov-sp-pill">
-              <div className="gov-sp-av">PS</div>
+              <div className="gov-sp-av">
+                <img src="/sarpanch.svg" alt="Sarpanch" className="gov-sp-img" />
+              </div>
               <div className="gov-sp-info">
                 <span className="gov-sp-name">Pasala Sivanarayanamurthy</span>
                 <span className="gov-sp-label">సర్పంచ్ · Sarpanch</span>
