@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx react-scripts:*)",
+      "WebSearch",
+      "WebFetch(domain:pixabay.com)"
+    ]
+  }
+}

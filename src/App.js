@@ -1,0 +1,36 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import HomePage       from './pages/HomePage';
+import FamilyDirectory from './pages/FamilyDirectory';
+import FamilyTree     from './pages/FamilyTree';
+import Gallery        from './pages/Gallery';
+import Complaints     from './pages/Complaints';
+import Chat           from './pages/Chat';
+import Education      from './pages/Education';
+import Login          from './pages/Login';
+import Register       from './pages/Register';
+import Profile        from './pages/Profile';
+import './App.css';
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/"           element={<HomePage />} />
+          <Route path="/families"   element={<FamilyDirectory />} />
+          <Route path="/family-tree"element={<FamilyTree />} />
+          <Route path="/gallery"    element={<Gallery />} />
+          <Route path="/complaints" element={<Complaints />} />
+          <Route path="/chat"       element={<Chat />} />
+          <Route path="/education"  element={<Education />} />
+          <Route path="/login"      element={<Login />} />
+          <Route path="/register"   element={<Register />} />
+          <Route path="/profile"    element={<Profile />} />
+        </Routes>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;
