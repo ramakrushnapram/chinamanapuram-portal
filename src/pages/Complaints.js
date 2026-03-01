@@ -25,6 +25,12 @@ const STATUS_CONFIG = {
 };
 
 function catInfo(value) { return CATEGORIES.find(c => c.value === value) || CATEGORIES[5]; }
+function maskPhone(phone) {
+  if (!phone) return '';
+  const d = phone.replace(/\D/g, '');
+  if (d.length < 6) return phone;
+  return d.slice(0, 5) + ' ' + d[5] + '••••';
+}
 
 /* ─── Sample data ─── */
 const SEED = [
@@ -131,7 +137,7 @@ function ComplaintCard({ complaint, expanded, onToggle }) {
           <p className="cp-card-desc">{complaint.desc}</p>
 
           {complaint.phone && (
-            <div className="cp-card-info">📞 {complaint.phone}</div>
+            <div className="cp-card-info">📞 {maskPhone(complaint.phone)}</div>
           )}
 
           {complaint.response ? (

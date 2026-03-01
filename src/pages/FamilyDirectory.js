@@ -26,6 +26,12 @@ function palette(id) { return PALETTE[(id - 1) % PALETTE.length]; }
 function initials(name) {
   return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
+function maskPhone(phone) {
+  if (!phone) return '';
+  const d = phone.replace(/\D/g, '');
+  if (d.length < 6) return phone;
+  return d.slice(0, 5) + ' ' + d[5] + '••••';
+}
 
 /* ── Sample data ── */
 const SEED_FAMILIES = [
@@ -371,7 +377,7 @@ export default function FamilyDirectory() {
                     </div>
                     <div className="fc-detail">
                       <span className="fc-detail-icon">📞</span>
-                      <span className="fc-detail-text">{fam.phone}</span>
+                      <span className="fc-detail-text">{maskPhone(fam.phone)}</span>
                     </div>
 
                     <div className="fc-footer">
