@@ -80,6 +80,17 @@ export default function Register() {
     }
   }
 
+  function friendlyGoogleError(code) {
+    switch (code) {
+      case 'auth/popup-closed-by-user':    return '';
+      case 'auth/popup-blocked':           return 'Popup was blocked — please allow popups for this site in your browser settings, then try again.';
+      case 'auth/unauthorized-domain':     return 'Domain not authorized in Firebase. Add chinamanapuram-portal.vercel.app to Firebase → Authentication → Settings → Authorized Domains.';
+      case 'auth/operation-not-allowed':   return 'Google sign-in is not enabled in Firebase Console yet.';
+      case 'auth/cancelled-popup-request': return '';
+      default: return `Google sign-up failed (${code || 'unknown error'}). Please try again.`;
+    }
+  }
+
   async function handleGoogle() {
     setError('');
     setGLoading(true);
@@ -87,9 +98,8 @@ export default function Register() {
       await signInWithGoogle();
       navigate('/');
     } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Google sign-up failed. Please try again.');
-      }
+      const msg = friendlyGoogleError(err.code);
+      if (msg) setError(msg);
     } finally {
       setGLoading(false);
     }

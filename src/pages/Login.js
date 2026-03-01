@@ -42,6 +42,17 @@ export default function Login() {
     }
   }
 
+  function friendlyGoogleError(code) {
+    switch (code) {
+      case 'auth/popup-closed-by-user':   return '';
+      case 'auth/popup-blocked':          return 'Popup was blocked. Please allow popups for this site and try again.';
+      case 'auth/unauthorized-domain':    return 'This domain is not authorized. Please contact admin.';
+      case 'auth/operation-not-allowed':  return 'Google sign-in is not enabled. Please contact admin.';
+      case 'auth/cancelled-popup-request': return '';
+      default: return `Google sign-in failed (${code || 'unknown'}). Please try again.`;
+    }
+  }
+
   async function handleGoogle() {
     setError('');
     setGLoading(true);
@@ -49,9 +60,8 @@ export default function Login() {
       await signInWithGoogle();
       navigate(from, { replace: true });
     } catch (err) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Google sign-in failed. Please try again.');
-      }
+      const msg = friendlyGoogleError(err.code);
+      if (msg) setError(msg);
     } finally {
       setGLoading(false);
     }
