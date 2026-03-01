@@ -2,6 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import {
+  collection, addDoc, query, where,
+  orderBy, onSnapshot, serverTimestamp, limit,
+} from 'firebase/firestore';
 
 /* ─── Channels ─── */
 const CHANNELS = [
@@ -131,14 +136,41 @@ export default function Chat() {
 }
 
 function ChatInner({ displayName }) {
-  const [activeChannel,setActiveChannel]= useState('general');
-  const [messages,     setMessages]     = useState(SEED);
-  const [input,        setInput]        = useState('');
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
-  const bottomRef  = useRef(null);
-  const inputRef   = useRef(null);
+  const [activeChannel, setActiveChannel] = useState('general');
+  const [messages,      setMessages]      = useState({ general: [], news: [], emergency: [], farming: [] });
+  const [input,         setInput]         = useState('');
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [sending,       setSending]       = useState(false);
+  const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
 
-  /* Auto-scroll when messages change */
+  /* Real-time Firestore listener per channel */
+  useEffect(() => {
+    const q = query(
+      collection(db, 'chatMessages'),
+      where('channelId', '==', activeChannel),
+      orderBy('createdAt', 'asc'),
+      limit(100)
+    );
+    const unsub = onSnapshot(q, snap => {
+      const msgs = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id:   d.id,
+          user: data.user,
+          av:   data.av,
+          text: data.text,
+          time: data.createdAt?.toDate().toLocaleTimeString('en-IN', {
+            hour: '2-digit', minute: '2-digit', hour12: true,
+          }) || 'Now',
+        };
+      });
+      setMessages(prev => ({ ...prev, [activeChannel]: msgs }));
+    });
+    return () => unsub();
+  }, [activeChannel]);
+
+  /* Auto-scroll */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeChannel]);
@@ -146,22 +178,25 @@ function ChatInner({ displayName }) {
   const currentMsgs = messages[activeChannel] || [];
   const channel     = CHANNELS.find(c => c.id === activeChannel);
 
-  function sendMessage() {
+  async function sendMessage() {
     const text = input.trim();
-    if (!text) return;
-    const newMsg = {
-      id:   Date.now(),
-      user: displayName,
-      av:   initials(displayName),
-      time: now(),
-      text,
-    };
-    setMessages(prev => ({
-      ...prev,
-      [activeChannel]: [...prev[activeChannel], newMsg],
-    }));
+    if (!text || sending) return;
+    setSending(true);
     setInput('');
-    inputRef.current?.focus();
+    try {
+      await addDoc(collection(db, 'chatMessages'), {
+        channelId: activeChannel,
+        user:      displayName,
+        av:        initials(displayName),
+        text,
+        createdAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.error('Send failed:', e);
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
   }
 
   function handleKey(e) {

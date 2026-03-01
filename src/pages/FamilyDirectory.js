@@ -1,7 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import {
+  collection, addDoc, updateDoc, doc,
+  onSnapshot, query, orderBy, writeBatch, serverTimestamp,
+} from 'firebase/firestore';
 
 /* ── Avatar color palette ── */
 const PALETTE = [
@@ -188,12 +193,32 @@ export default function FamilyDirectory() {
   const { user } = useAuth();
   const isLoggedIn = !!user;
 
-  const [families,      setFamilies]      = useState(SEED_FAMILIES);
+  const [families,      setFamilies]      = useState([]);
+  const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState('');
   const [showAddModal,  setShowAddModal]  = useState(false);
   const [editingFamily, setEditingFamily] = useState(null);
   const [loginPrompt,   setLoginPrompt]   = useState(false);
-  const [nextId,        setNextId]        = useState(SEED_FAMILIES.length + 1);
+
+  /* Load families from Firestore; seed sample data if empty */
+  useEffect(() => {
+    const q = query(collection(db, 'families'), orderBy('createdAt', 'asc'));
+    const unsub = onSnapshot(q, async snap => {
+      if (snap.empty) {
+        /* First time – seed 12 sample families */
+        const batch = writeBatch(db);
+        SEED_FAMILIES.forEach(f => {
+          const ref = doc(collection(db, 'families'));
+          batch.set(ref, { ...f, createdAt: serverTimestamp() });
+        });
+        await batch.commit();
+      } else {
+        setFamilies(snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })));
+        setLoading(false);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   /* filtered list */
   const filtered = useMemo(() => {
@@ -219,12 +244,19 @@ export default function FamilyDirectory() {
     setShowAddModal(true);
   }
 
-  function handleSave(data) {
-    if (editingFamily) {
-      setFamilies(fs => fs.map(f => f.id === editingFamily.id ? { ...f, ...data } : f));
-    } else {
-      setFamilies(fs => [...fs, { ...data, id: nextId }]);
-      setNextId(n => n + 1);
+  async function handleSave(data) {
+    try {
+      if (editingFamily?.firestoreId) {
+        await updateDoc(doc(db, 'families', editingFamily.firestoreId), data);
+      } else {
+        await addDoc(collection(db, 'families'), {
+          ...data,
+          id: Date.now(),
+          createdAt: serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to save family:', e);
     }
     setShowAddModal(false);
     setEditingFamily(null);

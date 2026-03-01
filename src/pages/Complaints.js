@@ -1,7 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import {
+  collection, addDoc, getDocs, onSnapshot,
+  query, orderBy, serverTimestamp, writeBatch, doc,
+} from 'firebase/firestore';
 
 /* ─── Config ─── */
 const CATEGORIES = [
@@ -150,13 +155,34 @@ const EMPTY_FORM = { name: '', phone: '', cat: '', title: '', desc: '' };
 export default function Complaints() {
   const { user } = useAuth();
   const [tab,        setTab]        = useState('submit');
-  const [complaints, setComplaints] = useState(SEED);
+  const [complaints, setComplaints] = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [form,       setForm]       = useState(EMPTY_FORM);
   const [errors,     setErrors]     = useState({});
   const [submitted,  setSubmitted]  = useState(null);
   const [filterSt,   setFilterSt]   = useState('all');
   const [search,     setSearch]     = useState('');
   const [expanded,   setExpanded]   = useState(null);
+
+  /* Load complaints from Firestore; seed sample data if empty */
+  useEffect(() => {
+    const q = query(collection(db, 'complaints'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, async snap => {
+      if (snap.empty) {
+        /* First time – seed sample complaints */
+        const batch = writeBatch(db);
+        SEED.forEach(c => {
+          const ref = doc(collection(db, 'complaints'));
+          batch.set(ref, { ...c, createdAt: serverTimestamp() });
+        });
+        await batch.commit();
+      } else {
+        setComplaints(snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })));
+        setLoading(false);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   /* stats */
   const stats = useMemo(() => ({
@@ -192,21 +218,27 @@ export default function Complaints() {
     return e;
   }
 
-  function handleSubmit(ev) {
+  async function handleSubmit(ev) {
     ev.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     const newId = `CMP-${String(complaints.length + 1).padStart(3, '0')}`;
-    setComplaints(cs => [{
+    const newComplaint = {
       id: newId, cat: form.cat, title: form.title, desc: form.desc,
       name: form.name.trim() || 'Anonymous', phone: form.phone,
       date: new Date().toISOString().slice(0, 10),
       status: 'pending', response: '',
-    }, ...cs]);
-    setSubmitted(newId);
-    setForm(EMPTY_FORM);
-    setErrors({});
+      createdAt: serverTimestamp(),
+    };
+    try {
+      await addDoc(collection(db, 'complaints'), newComplaint);
+      setSubmitted(newId);
+      setForm(EMPTY_FORM);
+      setErrors({});
+    } catch (e) {
+      console.error('Failed to save complaint:', e);
+    }
   }
 
   function toggleExpand(id) { setExpanded(e => e === id ? null : id); }
