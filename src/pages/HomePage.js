@@ -32,9 +32,11 @@ const DEFAULT_ANNOUNCEMENTS = [
 ];
 
 const DEFAULT_EVENTS = [
-  { id:1, color:'green',  icon:'🏥', date:'Mar 5, 2026',  title:'Free Health Camp',    desc:'Free check-up for all villagers at Panchayat Office. Specialists from Vizianagaram hospital attending.' },
-  { id:2, color:'orange', icon:'🎉', date:'Mar 10, 2026', title:'Ugadi Festival',       desc:'Grand Ugadi celebrations with cultural programs, traditional food, and prize distribution for students.'   },
-  { id:3, color:'blue',   icon:'🌱', date:'Mar 20, 2026', title:'Plantation Drive',     desc:'Village-wide tree plantation drive. Join us to plant 500 saplings along the main road and school grounds.'},
+  { id:1, color:'purple', icon:'🥁', date:'Apr 14, 2026', title:'Chinamanapuram Jatara Festival', desc:'Annual Jatara festival with traditional rituals, folk dances, community feast, and cultural performances. All villagers and guests are welcome!' },
+  { id:2, color:'green',  icon:'🏥', date:'Mar 5, 2026',  title:'Free Health Camp',    desc:'Free check-up for all villagers at Panchayat Office. Specialists from Vizianagaram hospital attending.' },
+  { id:3, color:'orange', icon:'🎉', date:'Mar 10, 2026', title:'Ugadi Festival',       desc:'Grand Ugadi celebrations with cultural programs, traditional food, and prize distribution for students.'   },
+  { id:4, color:'blue',   icon:'🌱', date:'Mar 20, 2026', title:'Plantation Drive',     desc:'Village-wide tree plantation drive. Join us to plant 500 saplings along the main road and school grounds.'},
+  
 ];
 
 export default function HomePage() {

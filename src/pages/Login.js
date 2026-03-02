@@ -8,7 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
 
 export default function Login() {
-  const { signIn, signInWithGoogle, logout } = useAuth();
+  const { signIn, signInWithGoogle, logout, user, isLoggedIn } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const from      = location.state?.from || '/';
@@ -210,6 +210,14 @@ export default function Login() {
           🌾 Chinamanapuram · Gantyada Mandal · Vizianagaram District
         </div>
       </div>
+
+      {/* User pill (always visible) */}
+      {isLoggedIn && (
+        <div className="fd-user-pill">
+          <span>👤 {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0]}</span>
+          <Link to="/profile" className="fd-logout-btn">Profile</Link>
+        </div>
+      )}
     </div>
   );
 }
