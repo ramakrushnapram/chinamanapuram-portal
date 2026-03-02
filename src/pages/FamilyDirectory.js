@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import {
-  collection, addDoc, updateDoc, doc,
-  onSnapshot, query, orderBy, writeBatch, serverTimestamp,
+  collection, addDoc, setDoc, doc,
+  onSnapshot, query, writeBatch, serverTimestamp,
 } from 'firebase/firestore';
+import { cloudinaryUpload, isCloudinaryConfigured } from '../utils/cloudinaryUpload';
 
 /* ── Avatar color palette ── */
 const PALETTE = [
@@ -190,6 +191,39 @@ function FamilyModal({ family, onSave, onClose }) {
   );
 }
 
+/* ── Family Photo Upload ── */
+function FamilyPhotoUpload({ fam }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress,  setProgress]  = useState(0);
+  const fileRef = useRef();
+
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (!isCloudinaryConfigured()) return;
+    setUploading(true); setProgress(0);
+    const upload = cloudinaryUpload(file, `families/${fam.firestoreId}`, pct => setProgress(pct));
+    upload.promise.then(async url => {
+      await setDoc(doc(db, 'families', fam.firestoreId), { photo: url }, { merge: true });
+      setUploading(false);
+    }).catch(() => setUploading(false));
+  }
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleFile} />
+      <button
+        className="fc-photo-btn"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        title="Upload family photo"
+      >
+        {uploading ? `📤 ${progress}%` : '📷'}
+      </button>
+    </>
+  );
+}
+
 /* LoginModal removed – app uses global Firebase auth via /login route */
 
 /* ─────────────────────────────────────────
@@ -208,21 +242,28 @@ export default function FamilyDirectory() {
 
   /* Load families from Firestore; seed sample data if empty */
   useEffect(() => {
-    const q = query(collection(db, 'families'), orderBy('createdAt', 'asc'));
+    const q = query(collection(db, 'families'));
     const unsub = onSnapshot(q, async snap => {
       if (snap.empty) {
-        /* First time – seed 12 sample families */
-        const batch = writeBatch(db);
-        SEED_FAMILIES.forEach(f => {
-          const ref = doc(collection(db, 'families'));
-          batch.set(ref, { ...f, createdAt: serverTimestamp() });
-        });
-        await batch.commit();
+        try {
+          const batch = writeBatch(db);
+          SEED_FAMILIES.forEach(f => {
+            const ref = doc(collection(db, 'families'));
+            batch.set(ref, { ...f, createdAt: serverTimestamp() });
+          });
+          await batch.commit();
+        } catch (_) {
+          setFamilies(SEED_FAMILIES);
+          setLoading(false);
+        }
       } else {
-        setFamilies(snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })));
+        const sorted = snap.docs
+          .map(d => ({ firestoreId: d.id, ...d.data() }))
+          .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        setFamilies(sorted);
         setLoading(false);
       }
-    });
+    }, () => { setLoading(false); });
     return () => unsub();
   }, []);
 
@@ -253,7 +294,7 @@ export default function FamilyDirectory() {
   async function handleSave(data) {
     try {
       if (editingFamily?.firestoreId) {
-        await updateDoc(doc(db, 'families', editingFamily.firestoreId), data);
+        await setDoc(doc(db, 'families', editingFamily.firestoreId), data, { merge: true });
       } else {
         await addDoc(collection(db, 'families'), {
           ...data,
@@ -386,9 +427,10 @@ export default function FamilyDirectory() {
                         <span className="fc-badge fc-badge-orange">📅 Since {fam.since}</span>
                       </div>
                       {isLoggedIn && (
-                        <button className="fc-edit-btn" onClick={() => handleEditClick(fam)}>
-                          ✏️ Edit
-                        </button>
+                        <div className="fc-actions">
+                          <button className="fc-edit-btn" onClick={() => handleEditClick(fam)}>✏️ Edit</button>
+                          <FamilyPhotoUpload fam={fam} />
+                        </div>
                       )}
                     </div>
                   </div>

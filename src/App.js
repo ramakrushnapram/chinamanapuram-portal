@@ -10,6 +10,8 @@ import Education      from './pages/Education';
 import Login          from './pages/Login';
 import Register       from './pages/Register';
 import Profile        from './pages/Profile';
+import Admin          from './pages/Admin';
+import Documents      from './pages/Documents';
 import './App.css';
 
 function App() {
@@ -27,6 +29,8 @@ function App() {
           <Route path="/login"      element={<Login />} />
           <Route path="/register"   element={<Register />} />
           <Route path="/profile"    element={<Profile />} />
+          <Route path="/admin"      element={<Admin />} />
+          <Route path="/documents"  element={<Documents />} />
         </Routes>
       </AuthProvider>
     </Router>

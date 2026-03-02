@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import {
   collection, addDoc, query, where,
-  orderBy, onSnapshot, serverTimestamp, limit,
+  onSnapshot, serverTimestamp, limit,
 } from 'firebase/firestore';
 
 /* ─── Channels ─── */
@@ -109,31 +109,35 @@ function ChatInner({ displayName }) {
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
-  /* Real-time Firestore listener per channel */
+  /* Subscribe to ALL channels at once — history persists when switching tabs */
   useEffect(() => {
-    const q = query(
-      collection(db, 'chatMessages'),
-      where('channelId', '==', activeChannel),
-      orderBy('createdAt', 'asc'),
-      limit(100)
-    );
-    const unsub = onSnapshot(q, snap => {
-      const msgs = snap.docs.map(d => {
-        const data = d.data();
-        return {
-          id:   d.id,
-          user: data.user,
-          av:   data.av,
-          text: data.text,
-          time: data.createdAt?.toDate().toLocaleTimeString('en-IN', {
-            hour: '2-digit', minute: '2-digit', hour12: true,
-          }) || 'Now',
-        };
-      });
-      setMessages(prev => ({ ...prev, [activeChannel]: msgs }));
+    const subs = CHANNELS.map(ch => {
+      const q = query(
+        collection(db, 'chatMessages'),
+        where('channelId', '==', ch.id),
+        limit(200)
+      );
+      return onSnapshot(q, snap => {
+        const msgs = snap.docs
+          .map(d => {
+            const data = d.data();
+            return {
+              id:      d.id,
+              user:    data.user,
+              av:      data.av,
+              text:    data.text,
+              sortKey: data.createdAt?.seconds || Date.now() / 1000,
+              time:    data.createdAt
+                ? data.createdAt.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+                : 'Just now',
+            };
+          })
+          .sort((a, b) => a.sortKey - b.sortKey);
+        setMessages(prev => ({ ...prev, [ch.id]: msgs }));
+      }, () => {});
     });
-    return () => unsub();
-  }, [activeChannel]);
+    return () => subs.forEach(u => u());
+  }, []); // mount once — all channels always live
 
   /* Auto-scroll */
   useEffect(() => {

@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+
+const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
 
 const WARDS = [
   'Ward 1 – Main Road Area',
@@ -14,24 +18,27 @@ const WARDS = [
   'Ward 8 – Village Center',
 ];
 
+function openWhatsApp(phone, message) {
+  const clean = phone.replace(/\D/g, '');
+  const number = clean.startsWith('91') ? clean : '91' + clean;
+  window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank');
+}
+
 export default function Register() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    fullName:   '',
-    familyName: '',
-    ward:       '',
-    mobile:     '',
-    email:      '',
-    password:   '',
-    confirm:    '',
+    fullName: '', familyName: '', ward: '',
+    mobile: '', email: '', password: '', confirm: '',
   });
-  const [showPw,   setShowPw]   = useState(false);
-  const [error,    setError]    = useState('');
-  const [errors,   setErrors]   = useState({});
-  const [loading,  setLoading]  = useState(false);
-  const [gLoading, setGLoading] = useState(false);
+  const [showPw,    setShowPw]    = useState(false);
+  const [error,     setError]     = useState('');
+  const [errors,    setErrors]    = useState({});
+  const [loading,   setLoading]   = useState(false);
+  const [gLoading,  setGLoading]  = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [userData,  setUserData]  = useState(null);
 
   function set(field, val) {
     setForm(f => ({ ...f, [field]: val }));
@@ -41,10 +48,13 @@ export default function Register() {
 
   function validate() {
     const e = {};
-    if (!form.fullName.trim())    e.fullName = 'Full name is required';
-    if (!form.email.trim())       e.email    = 'Email is required';
+    if (!form.fullName.trim())  e.fullName = 'Full name is required';
+    if (!form.mobile.trim())    e.mobile   = 'Mobile number is required for admin notification';
+    else if (!/^\d{10}$/.test(form.mobile.replace(/\s/g, '')))
+                                e.mobile   = 'Enter a valid 10-digit mobile number';
+    if (!form.email.trim())     e.email    = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Enter a valid email';
-    if (!form.password)           e.password = 'Password is required';
+    if (!form.password)         e.password = 'Password is required';
     else if (form.password.length < 6) e.password = 'Password must be at least 6 characters';
     if (form.password !== form.confirm) e.confirm = 'Passwords do not match';
     return e;
@@ -64,15 +74,67 @@ export default function Register() {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
-    setError('');
-    setLoading(true);
+    setError(''); setLoading(true);
     try {
-      await signUp(form.email.trim(), form.password, form.fullName.trim(), {
+      const cred = await signUp(form.email.trim(), form.password, form.fullName.trim(), {
         familyName: form.familyName.trim(),
         ward:       form.ward,
         mobile:     form.mobile.trim(),
       });
-      navigate('/');
+
+      const uid = cred.user.uid;
+      const status = ADMIN_EMAILS.includes(form.email.trim()) ? 'approved' : 'pending';
+
+      // Save to Firestore users collection
+      await setDoc(doc(db, 'users', uid), {
+        name:       form.fullName.trim(),
+        familyName: form.familyName.trim(),
+        ward:       form.ward,
+        mobile:     form.mobile.trim(),
+        email:      form.email.trim(),
+        status,
+        createdAt:  serverTimestamp(),
+      });
+
+      // Auto-add to Family Directory
+      try {
+        await addDoc(collection(db, 'families'), {
+          head:      form.fullName.trim(),
+          spouse:    '',
+          address:   form.ward ? `${form.ward}, Chinamanapuram` : 'Chinamanapuram',
+          phone:     form.mobile.trim(),
+          members:   1,
+          since:     new Date().getFullYear(),
+          photo:     '',
+          userId:    uid,
+          createdAt: serverTimestamp(),
+        });
+      } catch (_) {}
+
+      if (status === 'approved') {
+        navigate('/');
+        return;
+      }
+
+      // Sign out pending user — they must wait for approval
+      await logout();
+
+      // Get admin WhatsApp number from Firestore
+      let adminPhone = '919440151291'; // fallback — admin number
+      try {
+        const adminSnap = await getDoc(doc(db, 'settings', 'admin'));
+        if (adminSnap.exists() && adminSnap.data().whatsappNumber) {
+          adminPhone = adminSnap.data().whatsappNumber.replace(/\D/g, '');
+          if (!adminPhone.startsWith('91')) adminPhone = '91' + adminPhone;
+        }
+      } catch (_) {}
+
+      const adminMsg = `New registration request:\nName: ${form.fullName.trim()}\nMobile: ${form.mobile.trim()}\nEmail: ${form.email.trim()}\nWard: ${form.ward || 'Not specified'}\n\nPlease login to Admin panel to approve:\nhttps://chinamanapuram-portal.vercel.app/admin\n\n- Chinamanapuram Village Portal`;
+
+      const hasAdminPhone = adminPhone !== '911234567890';
+      setUserData({ name: form.fullName.trim(), mobile: form.mobile.trim(), adminPhone, adminMsg, hasAdminPhone });
+      setSubmitted(true);
+
     } catch (err) {
       setError(friendlyError(err.code));
     } finally {
@@ -83,19 +145,43 @@ export default function Register() {
   function friendlyGoogleError(code) {
     switch (code) {
       case 'auth/popup-closed-by-user':    return '';
-      case 'auth/popup-blocked':           return 'Popup was blocked — please allow popups for this site in your browser settings, then try again.';
-      case 'auth/unauthorized-domain':     return 'Domain not authorized in Firebase. Add chinamanapuram-portal.vercel.app to Firebase → Authentication → Settings → Authorized Domains.';
-      case 'auth/operation-not-allowed':   return 'Google sign-in is not enabled in Firebase Console yet.';
+      case 'auth/popup-blocked':           return 'Popup was blocked. Please allow popups and try again.';
       case 'auth/cancelled-popup-request': return '';
-      default: return `Google sign-up failed (${code || 'unknown error'}). Please try again.`;
+      default: return `Google sign-up failed (${code || 'unknown'}). Please try again.`;
     }
   }
 
   async function handleGoogle() {
-    setError('');
-    setGLoading(true);
+    setError(''); setGLoading(true);
     try {
-      await signInWithGoogle();
+      const cred = await signInWithGoogle();
+      const uid  = cred.user.uid;
+      // Check if user record exists
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (!snap.exists()) {
+        // New Google user — save as approved (Google accounts trusted)
+        await setDoc(doc(db, 'users', uid), {
+          name:      cred.user.displayName || '',
+          email:     cred.user.email || '',
+          mobile:    '',
+          status:    'approved',
+          createdAt: serverTimestamp(),
+        });
+        // Auto-add to Family Directory
+        try {
+          await addDoc(collection(db, 'families'), {
+            head:      cred.user.displayName || cred.user.email?.split('@')[0] || 'Villager',
+            spouse:    '',
+            address:   'Chinamanapuram',
+            phone:     '',
+            members:   1,
+            since:     new Date().getFullYear(),
+            photo:     cred.user.photoURL || '',
+            userId:    uid,
+            createdAt: serverTimestamp(),
+          });
+        } catch (_) {}
+      }
       navigate('/');
     } catch (err) {
       const msg = friendlyGoogleError(err.code);
@@ -105,29 +191,82 @@ export default function Register() {
     }
   }
 
+  /* ── Success screen ── */
+  if (submitted && userData) {
+    return (
+      <div className="auth-page">
+        <Navbar />
+        <div className="auth-container">
+          <div className="auth-card" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '4rem', marginBottom: 12 }}>⏳</div>
+            <h2 style={{ color: 'var(--primary)', marginBottom: 8 }}>Request Submitted!</h2>
+            <p style={{ color: 'var(--text-mid)', marginBottom: 20, lineHeight: 1.7 }}>
+              Hi <strong>{userData.name}</strong>, your registration request has been sent to the Admin for approval.
+              You will be able to login once the Sarpanch approves your account.
+            </p>
+
+            <div className="reg-pending-box">
+              <div className="reg-pending-step">
+                <span className="reg-step-num">1</span>
+                <span>Your request is submitted ✅</span>
+              </div>
+              <div className="reg-pending-step">
+                <span className="reg-step-num">2</span>
+                <span>Admin reviews your request ⏳</span>
+              </div>
+              <div className="reg-pending-step">
+                <span className="reg-step-num">3</span>
+                <span>You get WhatsApp notification ✅</span>
+              </div>
+              <div className="reg-pending-step">
+                <span className="reg-step-num">4</span>
+                <span>Login and access the portal 🎉</span>
+              </div>
+            </div>
+
+            {userData.hasAdminPhone ? (
+              <>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-mid)', margin: '16px 0 8px' }}>
+                  Click below to notify the Admin on WhatsApp:
+                </p>
+                <button
+                  className="reg-whatsapp-btn"
+                  onClick={() => openWhatsApp(userData.adminPhone, userData.adminMsg)}
+                >
+                  📲 Notify Admin on WhatsApp
+                </button>
+              </>
+            ) : (
+              <div className="reg-no-wa-note">
+                📋 Your request has been saved. The Admin will review it in the Admin Panel and approve your account. You will be notified once approved.
+              </div>
+            )}
+
+            <div style={{ marginTop: 20 }}>
+              <Link to="/login" className="auth-link">← Back to Login</Link>
+            </div>
+          </div>
+          <div className="auth-village-badge">
+            🌾 Chinamanapuram · Gantyada Mandal · Vizianagaram District
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-page">
       <Navbar />
-
       <div className="auth-container">
         <div className="auth-card auth-card-lg">
-          {/* Header */}
           <div className="auth-header">
             <div className="auth-logo">🏘️</div>
             <h1 className="auth-title">Join the Portal</h1>
             <p className="auth-sub">Create your Chinamanapuram Village account</p>
           </div>
 
-          {/* Google button */}
-          <button
-            className="auth-btn-google"
-            onClick={handleGoogle}
-            disabled={gLoading || loading}
-            type="button"
-          >
-            {gLoading ? (
-              <span className="auth-spinner" />
-            ) : (
+          <button className="auth-btn-google" onClick={handleGoogle} disabled={gLoading || loading} type="button">
+            {gLoading ? <span className="auth-spinner" /> : (
               <svg className="auth-google-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -138,144 +277,86 @@ export default function Register() {
             {gLoading ? 'Signing up…' : 'Sign up with Google'}
           </button>
 
-          {/* Divider */}
           <div className="auth-divider"><span>or register with email</span></div>
-
-          {/* Error */}
           {error && <div className="auth-error">⚠️ {error}</div>}
 
-          {/* Form */}
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             <div className="auth-form-grid">
 
-              {/* Full Name */}
               <div className="auth-field auth-field-full">
                 <label className="auth-label">Full Name <span className="auth-req">*</span></label>
-                <input
-                  className={`auth-input${errors.fullName ? ' auth-input-err' : ''}`}
-                  type="text"
-                  value={form.fullName}
-                  onChange={e => set('fullName', e.target.value)}
-                  placeholder="e.g. Venkata Raju"
-                  autoFocus
-                  disabled={loading}
-                />
+                <input className={`auth-input${errors.fullName ? ' auth-input-err' : ''}`} type="text"
+                  value={form.fullName} onChange={e => set('fullName', e.target.value)}
+                  placeholder="e.g. Venkata Raju" autoFocus disabled={loading} />
                 {errors.fullName && <span className="auth-field-err">{errors.fullName}</span>}
               </div>
 
-              {/* Family Name */}
               <div className="auth-field">
                 <label className="auth-label">Family / Surname <span className="auth-opt">(optional)</span></label>
-                <input
-                  className="auth-input"
-                  type="text"
-                  value={form.familyName}
-                  onChange={e => set('familyName', e.target.value)}
-                  placeholder="e.g. Rao"
-                  disabled={loading}
-                />
+                <input className="auth-input" type="text" value={form.familyName}
+                  onChange={e => set('familyName', e.target.value)} placeholder="e.g. Rao" disabled={loading} />
               </div>
 
-              {/* Ward */}
               <div className="auth-field">
                 <label className="auth-label">Village Ward <span className="auth-opt">(optional)</span></label>
-                <select
-                  className="auth-input auth-select"
-                  value={form.ward}
-                  onChange={e => set('ward', e.target.value)}
-                  disabled={loading}
-                >
+                <select className="auth-input auth-select" value={form.ward}
+                  onChange={e => set('ward', e.target.value)} disabled={loading}>
                   <option value="">Select your ward…</option>
                   {WARDS.map(w => <option key={w} value={w}>{w}</option>)}
                 </select>
               </div>
 
-              {/* Mobile */}
               <div className="auth-field">
-                <label className="auth-label">Mobile Number <span className="auth-opt">(optional)</span></label>
-                <input
-                  className="auth-input"
-                  type="tel"
-                  value={form.mobile}
-                  onChange={e => set('mobile', e.target.value)}
-                  placeholder="e.g. 94405 12345"
-                  disabled={loading}
-                />
+                <label className="auth-label">Mobile Number <span className="auth-req">*</span></label>
+                <input className={`auth-input${errors.mobile ? ' auth-input-err' : ''}`} type="tel"
+                  value={form.mobile} onChange={e => set('mobile', e.target.value)}
+                  placeholder="e.g. 9440512345" disabled={loading} />
+                {errors.mobile && <span className="auth-field-err">{errors.mobile}</span>}
               </div>
 
-              {/* Email */}
               <div className="auth-field auth-field-full">
                 <label className="auth-label">Email Address <span className="auth-req">*</span></label>
-                <input
-                  className={`auth-input${errors.email ? ' auth-input-err' : ''}`}
-                  type="email"
-                  value={form.email}
-                  onChange={e => set('email', e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  disabled={loading}
-                />
+                <input className={`auth-input${errors.email ? ' auth-input-err' : ''}`} type="email"
+                  value={form.email} onChange={e => set('email', e.target.value)}
+                  placeholder="you@example.com" autoComplete="email" disabled={loading} />
                 {errors.email && <span className="auth-field-err">{errors.email}</span>}
               </div>
 
-              {/* Password */}
               <div className="auth-field">
                 <label className="auth-label">Password <span className="auth-req">*</span></label>
                 <div className="auth-pw-wrap">
-                  <input
-                    className={`auth-input auth-pw-input${errors.password ? ' auth-input-err' : ''}`}
-                    type={showPw ? 'text' : 'password'}
-                    value={form.password}
+                  <input className={`auth-input auth-pw-input${errors.password ? ' auth-input-err' : ''}`}
+                    type={showPw ? 'text' : 'password'} value={form.password}
                     onChange={e => set('password', e.target.value)}
-                    placeholder="Min. 6 characters"
-                    autoComplete="new-password"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="auth-pw-toggle"
-                    onClick={() => setShowPw(v => !v)}
-                    tabIndex={-1}
-                  >{showPw ? '🙈' : '👁️'}</button>
+                    placeholder="Min. 6 characters" autoComplete="new-password" disabled={loading} />
+                  <button type="button" className="auth-pw-toggle"
+                    onClick={() => setShowPw(v => !v)} tabIndex={-1}>
+                    {showPw ? '🙈' : '👁️'}
+                  </button>
                 </div>
                 {errors.password && <span className="auth-field-err">{errors.password}</span>}
               </div>
 
-              {/* Confirm Password */}
               <div className="auth-field">
                 <label className="auth-label">Confirm Password <span className="auth-req">*</span></label>
-                <input
-                  className={`auth-input${errors.confirm ? ' auth-input-err' : ''}`}
-                  type={showPw ? 'text' : 'password'}
-                  value={form.confirm}
+                <input className={`auth-input${errors.confirm ? ' auth-input-err' : ''}`}
+                  type={showPw ? 'text' : 'password'} value={form.confirm}
                   onChange={e => set('confirm', e.target.value)}
-                  placeholder="Repeat your password"
-                  autoComplete="new-password"
-                  disabled={loading}
-                />
+                  placeholder="Repeat your password" autoComplete="new-password" disabled={loading} />
                 {errors.confirm && <span className="auth-field-err">{errors.confirm}</span>}
               </div>
 
             </div>
 
-            <button
-              type="submit"
-              className="auth-btn-primary"
-              disabled={loading || gLoading}
-            >
+            <button type="submit" className="auth-btn-primary" disabled={loading || gLoading}>
               {loading ? <><span className="auth-spinner" /> Creating account…</> : '🚀 Create Account'}
             </button>
           </form>
 
-          {/* Footer */}
           <div className="auth-card-footer">
-            <p>
-              Already have an account?{' '}
-              <Link to="/login" className="auth-link">Sign in here</Link>
-            </p>
+            <p>Already have an account? <Link to="/login" className="auth-link">Sign in here</Link></p>
           </div>
         </div>
-
         <div className="auth-village-badge">
           🌾 Chinamanapuram · Gantyada Mandal · Vizianagaram District
         </div>

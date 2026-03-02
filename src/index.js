@@ -4,6 +4,20 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Suppress Firebase unhandled rejections — components handle errors gracefully.
+// Network suspension (ERR_NETWORK_IO_SUSPENDED) also causes Firebase rejections
+// when the browser tab sleeps; these are safe to ignore.
+window.addEventListener('unhandledrejection', event => {
+  const reason = event.reason;
+  if (!reason) { event.preventDefault(); return; }
+  const code = reason.code || '';
+  const msg  = reason.message || '';
+  const isFirebase = reason.name === 'FirebaseError' || code.includes('/') ||
+    msg.includes('Firebase') || msg.includes('firestore') ||
+    msg.includes('permissions') || msg.includes('document');
+  if (isFirebase) event.preventDefault();
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

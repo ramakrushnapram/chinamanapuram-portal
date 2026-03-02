@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const NAV_LINKS = [
   { to: '/',            label: 'Home',        icon: '🏠', end: true },
@@ -10,9 +12,10 @@ const NAV_LINKS = [
   { to: '/complaints', label: 'Complaints',  icon: '📣' },
   { to: '/chat',       label: 'Chat',        icon: '💬' },
   { to: '/education',  label: 'Education',   icon: '📚' },
+  { to: '/documents',  label: 'Documents',   icon: '📂' },
 ];
 
-const TICKER_ITEMS = [
+const DEFAULT_TICKER = [
   '🎉 Ugadi Festival on March 10 – All families invited!',
   '🚧 Road repair work started on Main Street',
   '💧 Water supply restored in South Colony',
@@ -27,11 +30,27 @@ function initials(name) {
 }
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]               = useState(false);
+  const [tickerItems, setTickerItems] = useState(DEFAULT_TICKER);
+  const [spPhoto, setSpPhoto]         = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const tickerContent = [...TICKER_ITEMS, ...TICKER_ITEMS];
+  useEffect(() => {
+    const unsubTicker = onSnapshot(
+      doc(db, 'settings', 'ticker'),
+      snap => { if (snap.exists() && snap.data().items?.length) setTickerItems(snap.data().items); },
+      () => {} // ignore permission errors — use default ticker
+    );
+    const unsubSp = onSnapshot(
+      doc(db, 'settings', 'sarpanch'),
+      snap => { if (snap.exists() && snap.data().photoURL) setSpPhoto(snap.data().photoURL); },
+      () => {} // ignore permission errors — use default avatar
+    );
+    return () => { unsubTicker(); unsubSp(); };
+  }, []);
+
+  const tickerContent = [...tickerItems, ...tickerItems];
 
   async function handleLogout() {
     try {
@@ -56,10 +75,13 @@ export default function Navbar() {
           <div className="gov-topbar-right">
             <div className="gov-sp-pill">
               <div className="gov-sp-av">
-                <img src="/sarpanch.svg" alt="Sarpanch" className="gov-sp-img" />
+                {spPhoto
+                  ? <img src={spPhoto} alt="Sarpanch" className="gov-sp-img" />
+                  : <span className="gov-sp-initials">PVP</span>
+                }
               </div>
               <div className="gov-sp-info">
-                <span className="gov-sp-name">Pasala Sivanarayanamurthy</span>
+                <span className="gov-sp-name">Pasala Venkata Parvathi</span>
                 <span className="gov-sp-label">సర్పంచ్ · Sarpanch</span>
               </div>
             </div>

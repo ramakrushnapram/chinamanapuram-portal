@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
 import {
   collection, addDoc, onSnapshot,
-  query, orderBy, serverTimestamp, writeBatch, doc,
+  query, serverTimestamp, writeBatch, doc,
 } from 'firebase/firestore';
 
 /* ─── Config ─── */
@@ -172,21 +172,28 @@ export default function Complaints() {
 
   /* Load complaints from Firestore; seed sample data if empty */
   useEffect(() => {
-    const q = query(collection(db, 'complaints'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'complaints'));
     const unsub = onSnapshot(q, async snap => {
       if (snap.empty) {
-        /* First time – seed sample complaints */
-        const batch = writeBatch(db);
-        SEED.forEach(c => {
-          const ref = doc(collection(db, 'complaints'));
-          batch.set(ref, { ...c, createdAt: serverTimestamp() });
-        });
-        await batch.commit();
+        try {
+          const batch = writeBatch(db);
+          SEED.forEach(c => {
+            const ref = doc(collection(db, 'complaints'));
+            batch.set(ref, { ...c, createdAt: serverTimestamp() });
+          });
+          await batch.commit();
+        } catch (_) {
+          setComplaints(SEED);
+          setLoading(false);
+        }
       } else {
-        setComplaints(snap.docs.map(d => ({ firestoreId: d.id, ...d.data() })));
+        const sorted = snap.docs
+          .map(d => ({ firestoreId: d.id, ...d.data() }))
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        setComplaints(sorted);
         setLoading(false);
       }
-    });
+    }, () => { setLoading(false); });
     return () => unsub();
   }, []);
 

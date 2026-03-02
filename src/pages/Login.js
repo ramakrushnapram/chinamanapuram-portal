@@ -2,9 +2,13 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
 
 export default function Login() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, logout } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const from      = location.state?.from || '/';
@@ -27,13 +31,37 @@ export default function Login() {
     }
   }
 
+  async function checkUserStatus(uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) return snap.data().status || 'approved';
+    } catch (_) {}
+    return 'approved'; // if no Firestore doc, allow (e.g. legacy accounts)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!email.trim() || !password) { setError('Please fill in all fields.'); return; }
     setError('');
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
+      const cred = await signIn(email.trim(), password);
+
+      // Admin always gets through
+      if (!ADMIN_EMAILS.includes(email.trim())) {
+        const status = await checkUserStatus(cred.user.uid);
+        if (status === 'pending') {
+          await logout();
+          setError('⏳ Your account is pending admin approval. You will be notified via WhatsApp once approved.');
+          return;
+        }
+        if (status === 'rejected') {
+          await logout();
+          setError('❌ Your registration was not approved. Please contact the Panchayat office.');
+          return;
+        }
+      }
+
       navigate(from, { replace: true });
     } catch (err) {
       setError(friendlyError(err.code));
@@ -57,7 +85,20 @@ export default function Login() {
     setError('');
     setGLoading(true);
     try {
-      await signInWithGoogle();
+      const cred = await signInWithGoogle();
+
+      const status = await checkUserStatus(cred.user.uid);
+      if (status === 'pending') {
+        await logout();
+        setError('⏳ Your account is pending admin approval. You will be notified via WhatsApp once approved.');
+        return;
+      }
+      if (status === 'rejected') {
+        await logout();
+        setError('❌ Your registration was not approved. Please contact the Panchayat office.');
+        return;
+      }
+
       navigate(from, { replace: true });
     } catch (err) {
       const msg = friendlyGoogleError(err.code);
@@ -115,11 +156,12 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
-                placeholder="you@example.com"
+                placeholder="yourname@gmail.com"
                 autoComplete="email"
                 autoFocus
                 disabled={loading}
               />
+              <span className="auth-field-hint">Enter your email like: yourname@gmail.com</span>
             </div>
 
             <div className="auth-field">
