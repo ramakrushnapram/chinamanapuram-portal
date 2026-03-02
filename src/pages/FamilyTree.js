@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 /* ─────────────────────────────────────────
    Family Data – Ramu Rao family
@@ -136,6 +137,8 @@ export default function FamilyTree() {
   const [search,       setSearch]       = useState('');
   const [showAdd,      setShowAdd]      = useState(false);
 
+  const { user } = useAuth();
+
   const searchResults = search.trim()
     ? ALL_PERSONS.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
     : [];
@@ -197,7 +200,9 @@ export default function FamilyTree() {
             <span className="ft-stat-pill">🧬 3 generations</span>
           </div>
 
-          <button className="fd-add-btn" onClick={() => setShowAdd(true)}>＋ Add Member</button>
+          {user && (
+            <button className="fd-add-btn" onClick={() => setShowAdd(true)}>＋ Add Member</button>
+          )}
         </div>
       </div>
 

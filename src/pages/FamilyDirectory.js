@@ -23,7 +23,11 @@ const PALETTE = [
   { bg: '#fef9c3', fg: '#713f12' },
 ];
 
-function palette(id) { return PALETTE[(id - 1) % PALETTE.length]; }
+function palette(id) {
+  // fallback to 1 if id is missing or invalid
+  const safeId = typeof id === 'number' && id > 0 ? id : 1;
+  return PALETTE[(safeId - 1) % PALETTE.length];
+}
 function initials(name) {
   return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
@@ -120,6 +124,15 @@ function FamilyModal({ family, onSave, onClose }) {
                 value={form.spouse}
                 onChange={e => set('spouse', e.target.value)}
                 placeholder="e.g. Sarada Devi"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Father Name <span className="form-optional">(if no spouse)</span></label>
+              <input
+                className="form-input"
+                value={form.father || ''}
+                onChange={e => set('father', e.target.value)}
+                placeholder="e.g. Appala Naidu"
               />
             </div>
             <div className="form-group">
@@ -298,7 +311,7 @@ export default function FamilyDirectory() {
       } else {
         await addDoc(collection(db, 'families'), {
           ...data,
-          id: Date.now(),
+          id: Date.now(), // or use a better unique positive integer
           createdAt: serverTimestamp(),
         });
       }
@@ -385,6 +398,7 @@ export default function FamilyDirectory() {
           <div className="fd-grid">
             {filtered.map(fam => {
               const pal = palette(fam.id);
+              if (!pal) return null; // or render a default card
               return (
                 <div className="family-card" key={fam.id}>
                   {/* top color strip */}
@@ -408,7 +422,11 @@ export default function FamilyDirectory() {
 
                   <div className="fc-body">
                     <div className="fc-name">{fam.head}</div>
-                    {fam.spouse && <div className="fc-spouse">w/ {fam.spouse}</div>}
+                    {fam.spouse
+                      ? <div className="fc-spouse">w/ {fam.spouse}</div>
+                      : fam.father
+                        ? <div className="fc-spouse">Father: {fam.father}</div>
+                        : null}
 
                     <div className="fc-divider" />
 

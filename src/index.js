@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter } from 'react-router-dom';
 
 // Suppress Firebase unhandled rejections — components handle errors gracefully.
 // Network suspension (ERR_NETWORK_IO_SUSPENDED) also causes Firebase rejections
@@ -21,7 +23,11 @@ window.addEventListener('unhandledrejection', event => {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
 
