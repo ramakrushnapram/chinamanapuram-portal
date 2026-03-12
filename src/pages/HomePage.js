@@ -338,7 +338,7 @@ function weatherInfo(code) {
 }
 
 export default function HomePage() {
-  const [announcements,  setAnnouncements]  = useState(DEFAULT_ANNOUNCEMENTS);
+  const [announcements,  setAnnouncements]  = useState([]);
   const [festivalModal,  setFestivalModal]  = useState(null);
   const [showcaseModal,  setShowcaseModal]  = useState(null);
   const [weather,        setWeather]        = useState(null);

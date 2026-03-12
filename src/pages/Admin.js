@@ -13,9 +13,7 @@ import { useAuth } from '../context/AuthContext';
 /* ── Admin emails — add any email here to grant admin access ── */
 const ADMIN_EMAILS = [
   'admin@chinamanapuram.com',
-  /* Add your personal email below to also get admin access:
-  'yourname@gmail.com',
-  */
+  'ramakrushna.pram@gmail.com',
 ];
 
 /* ── WhatsApp helper ── */
@@ -479,7 +477,7 @@ function MembersTab({ members }) {
       generateFamilyPDF({ ...m, familyId });
 
       if (m.mobile) {
-        const msg = `✅ Congratulations ${m.name || ''}!\n\nYour Chinamanapuram Village Portal account has been APPROVED.\n\nYour Family ID: ${familyId}\n\nLogin at: https://chinamanapuram-portal.vercel.app/login\n\n- Chinamanapuram Village Portal`;
+        const msg = `✅ Congratulations ${m.name || ''}!\n\nYour Chinamanapuram Village Portal account has been APPROVED.\n\nYour Family ID: ${familyId}\n\nLogin at: https://chinamanapuram-portal.netlify.app/login\n\n- Chinamanapuram Village Portal`;
         openWhatsApp(m.mobile, msg);
       }
     } catch (_) {}

@@ -142,7 +142,7 @@ export default function Register() {
         }
       } catch (_) {}
 
-      const adminMsg = `New registration from ${form.fullName.trim()} - ${form.mobile.trim()} - Please approve at chinamanapuram portal\n\nhttps://chinamanapuram-portal.vercel.app/admin\n\nEmail: ${form.email.trim()}\nWard: ${form.ward || 'Not specified'}`;
+      const adminMsg = `New registration from ${form.fullName.trim()} - ${form.mobile.trim()} - Please approve at chinamanapuram portal\n\nhttps://chinamanapuram-portal.netlify.app/admin\n\nEmail: ${form.email.trim()}\nWard: ${form.ward || 'Not specified'}`;
 
       const hasAdminPhone = adminPhone !== '911234567890';
       setUserData({ name: form.fullName.trim(), mobile: form.mobile.trim(), adminPhone, adminMsg, hasAdminPhone });
