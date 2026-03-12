@@ -190,11 +190,25 @@ html { overflow-x: hidden; }
 }
 
 .navbar-links {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: none;
+  position: absolute;
+  top: 66px;
+  left: 0;
+  right: 0;
+  background: var(--primary-dark);
+  flex-direction: column;
+  padding: 10px 16px 16px;
+  gap: 2px;
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 200;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
   list-style: none;
+  align-items: stretch;
 }
+.navbar-links.open { display: flex; }
+.navbar-links a { padding: 11px 16px; border-radius: 8px; font-size: 0.92rem; }
 
 .navbar-links a {
   display: flex;
@@ -217,7 +231,7 @@ html { overflow-x: hidden; }
 }
 
 .hamburger {
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: 5px;
   cursor: pointer;
@@ -1002,25 +1016,6 @@ html { overflow-x: hidden; }
 }
 
 @media (max-width: 1050px) {
-  .navbar-links {
-    display: none;
-    position: absolute;
-    top: 66px;
-    left: 0;
-    right: 0;
-    background: var(--primary-dark);
-    flex-direction: column;
-    padding: 10px 16px 16px;
-    gap: 2px;
-    border-bottom: 2px solid var(--accent);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    z-index: 200;
-    max-height: calc(100vh - 150px);
-    overflow-y: auto;
-  }
-  .navbar-links.open { display: flex; }
-  .navbar-links a { padding: 11px 16px; border-radius: 8px; font-size: 0.92rem; }
-  .hamburger { display: flex; }
   .navbar { position: relative; }
   .quick-links-grid { grid-template-columns: repeat(3, 1fr); }
   .events-grid { grid-template-columns: 1fr; }
@@ -4048,11 +4043,7 @@ html { overflow-x: hidden; }
    NAVBAR MOBILE — auth user area responsive
    ═══════════════════════════════════════════════════════════ */
 
-@media (max-width: 1050px) {
-  .navbar-user-area   { display: none; }
-  .navbar-mobile-auth { display: block; }
-  .navbar-mobile-auth li { list-style: none; }
-}
+.navbar-mobile-auth { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    VILLAGE SCENE HERO  (vg-* classes)
