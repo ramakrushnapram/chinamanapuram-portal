@@ -12,6 +12,9 @@ import Register       from './pages/Register';
 import Profile        from './pages/Profile';
 import Admin          from './pages/Admin';
 import Documents      from './pages/Documents';
+import Videos        from './pages/Videos';
+import Health        from './pages/Health';
+import Farming       from './pages/Farming';
 import './App.css';
 
 function App() {
@@ -31,6 +34,9 @@ function App() {
           <Route path="/profile"    element={<Profile />} />
           <Route path="/admin"      element={<Admin />} />
           <Route path="/documents"  element={<Documents />} />
+          <Route path="/videos"     element={<Videos />} />
+          <Route path="/health"     element={<Health />} />
+          <Route path="/farming"    element={<Farming />} />
         </Routes>
       </AuthProvider>
     </Router>

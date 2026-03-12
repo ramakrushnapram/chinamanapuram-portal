@@ -13,10 +13,13 @@ const NAV_LINKS = [
   { to: '/chat',       label: 'Chat',        icon: '💬' },
   { to: '/education',  label: 'Education',   icon: '📚' },
   { to: '/documents',  label: 'Documents',   icon: '📂' },
+  { to: '/videos',     label: 'Videos',      icon: '🎬' },
+  { to: '/health',     label: 'Health',      icon: '🏥' },
+  { to: '/farming',   label: 'Farming',     icon: '🌾' },
 ];
 
 const DEFAULT_TICKER = [
-  '🎉 Ugadi Festival on March 10 – All families invited!',
+  '🎉 Ugadi (Vishwavasu) on March 19 – All families invited to Panchayat grounds!',
   '🚧 Road repair work started on Main Street',
   '💧 Water supply restored in South Colony',
   '📚 Scholarship applications open for Class 10 students',
@@ -55,7 +58,7 @@ export default function Navbar() {
   async function handleLogout() {
     try {
       await logout();
-      navigate('/');
+      navigate('/login', { state: { loggedOut: true } });
     } catch (_) {}
     setOpen(false);
   }
