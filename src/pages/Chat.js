@@ -151,7 +151,9 @@ function MsgBubble({ msg, isMine }) {
     }
     return (
       <div className="msg-row msg-row-bot">
-        <div className="msg-av msg-av-bot">{msg.av}</div>
+        <div className="msg-av msg-av-bot" style={{ padding:0, overflow:'hidden', background:'transparent' }}>
+          <img src="/bot-avatar.svg" alt="Bot" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }} />
+        </div>
         <div className="msg-col">
           <div className="msg-sender msg-sender-bot">{msg.user}</div>
           <div className="msg-bubble msg-bubble-bot">{msg.text}</div>
