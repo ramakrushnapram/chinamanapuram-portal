@@ -100,6 +100,9 @@ const TABS = [
   { id: 'ticker',     icon: '📢', label: 'Ticker News'   },
   { id: 'announce',   icon: '📣', label: 'Announcements' },
   { id: 'events',     icon: '📅', label: 'Events'        },
+  { id: 'gallery',    icon: '🖼️', label: 'Gallery'       },
+  { id: 'farming',    icon: '🌾', label: 'Farming Tips'  },
+  { id: 'health',     icon: '🏥', label: 'Health Tips'   },
   { id: 'profile',    icon: '👤', label: 'My Profile'    },
   { id: 'settings',   icon: '⚙️', label: 'Settings'      },
 ];
@@ -287,6 +290,9 @@ function AdminDashboard({ onLogout }) {
           {tab === 'ticker'     && <TickerTab items={ticker} />}
           {tab === 'announce'   && <AnnounceTab items={announces} />}
           {tab === 'events'     && <EventsTab items={events} />}
+          {tab === 'gallery'    && <GalleryTab />}
+          {tab === 'farming'    && <FarmingTipsTab />}
+          {tab === 'health'     && <HealthTipsTab />}
           {tab === 'profile'    && <ProfileTab />}
           {tab === 'settings'   && <SettingsTab />}
         </div>
@@ -1146,6 +1152,252 @@ function SettingsTab() {
         </form>
       </div>
 
+    </div>
+  );
+}
+
+/* ── Gallery Tab ── */
+function GalleryTab() {
+  const [albums,  setAlbums]  = useState([]);
+  const [photos,  setPhotos]  = useState([]);
+  const [form,    setForm]    = useState({ name: '', category: 'Village Photos', date: '', cover: '🖼️' });
+  const [saving,  setSaving]  = useState(false);
+  const [showForm,setShowForm]= useState(false);
+
+  useEffect(() => {
+    const u1 = onSnapshot(collection(db, 'galleryAlbums'), s => setAlbums(s.docs.map(d=>({id:d.id,...d.data()}))), ()=>{});
+    const u2 = onSnapshot(collection(db, 'galleryPhotos'), s => setPhotos(s.docs.map(d=>({id:d.id,...d.data()}))), ()=>{});
+    return () => { u1(); u2(); };
+  }, []);
+
+  async function handleAddAlbum(e) {
+    e.preventDefault(); setSaving(true);
+    try {
+      await addDoc(collection(db,'galleryAlbums'), { ...form, createdAt: serverTimestamp() });
+      setForm({ name:'', category:'Village Photos', date:'', cover:'🖼️' });
+      setShowForm(false);
+    } catch(_){}
+    setSaving(false);
+  }
+
+  async function delAlbum(id) {
+    if (!window.confirm('Delete this album and all its photos?')) return;
+    const pics = photos.filter(p => p.albumId === id);
+    for (const p of pics) await deleteDoc(doc(db,'galleryPhotos',p.id)).catch(()=>{});
+    await deleteDoc(doc(db,'galleryAlbums',id)).catch(()=>{});
+  }
+
+  const CATS = ['Village Photos','Festival Photos','Development Work','School & Education','Family Events'];
+
+  return (
+    <div>
+      <div className="admin-section-hdr">
+        <h2 className="admin-section-title">🖼️ Gallery Management</h2>
+        <button className="admin-add-btn" onClick={() => setShowForm(v=>!v)}>＋ New Album</button>
+      </div>
+      <p className="admin-hint">Create albums here. Users upload photos from the Gallery page.</p>
+
+      {showForm && (
+        <form onSubmit={handleAddAlbum} style={{ background:'#f8fffe', border:'1px solid #d1fae5', borderRadius:12, padding:20, marginBottom:20, display:'flex', flexWrap:'wrap', gap:12 }}>
+          <div style={{ flex:'1 1 180px' }}>
+            <label className="form-label">Album Name *</label>
+            <input className="form-input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required placeholder="e.g. Ugadi 2026" />
+          </div>
+          <div style={{ flex:'1 1 160px' }}>
+            <label className="form-label">Category</label>
+            <select className="form-input" value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}>
+              {CATS.map(c=><option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div style={{ flex:'0 1 130px' }}>
+            <label className="form-label">Date</label>
+            <input className="form-input" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} placeholder="Mar 19, 2026" />
+          </div>
+          <div style={{ flex:'0 1 80px' }}>
+            <label className="form-label">Cover Emoji</label>
+            <input className="form-input" value={form.cover} onChange={e=>setForm(f=>({...f,cover:e.target.value}))} />
+          </div>
+          <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+            <button type="submit" className="btn-save" disabled={saving}>{saving?'Creating…':'📁 Create'}</button>
+            <button type="button" className="btn-cancel" onClick={()=>setShowForm(false)}>Cancel</button>
+          </div>
+        </form>
+      )}
+
+      <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+        {albums.length === 0 && <div className="admin-empty">No albums yet. Create one above.</div>}
+        {albums.map(album => {
+          const albumPhotos = photos.filter(p => p.albumId === album.id);
+          return (
+            <div key={album.id} style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, padding:16 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                <div>
+                  <strong>{album.cover} {album.name}</strong>
+                  <span style={{ marginLeft:10, fontSize:'0.78rem', color:'#888' }}>{album.category} · {album.date} · {albumPhotos.length} photos</span>
+                </div>
+                <button className="admin-del-btn" onClick={() => delAlbum(album.id)}>🗑️ Delete</button>
+              </div>
+              {albumPhotos.length > 0 ? (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(90px,1fr))', gap:6 }}>
+                  {albumPhotos.map(p => (
+                    <div key={p.id} style={{ position:'relative', borderRadius:8, overflow:'hidden', aspectRatio:'1' }}>
+                      <img src={p.url} alt={p.caption||''} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                      <button onClick={()=>window.confirm('Delete photo?')&&deleteDoc(doc(db,'galleryPhotos',p.id)).catch(()=>{})}
+                        style={{ position:'absolute', top:2, right:2, background:'rgba(220,38,38,0.85)', border:'none', borderRadius:4, color:'#fff', fontSize:'0.6rem', padding:'2px 4px', cursor:'pointer' }}>🗑️</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color:'#aaa', fontSize:'0.82rem' }}>No photos yet — users can upload from the Gallery page.</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Farming Tips Tab ── */
+function FarmingTipsTab() {
+  const [tips,    setTips]    = useState([]);
+  const [showForm,setShowForm]= useState(false);
+  const [form,    setForm]    = useState({ icon:'🌱', title:'', te:'', en:'' });
+  const [saving,  setSaving]  = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db,'farmingTips'), s => setTips(s.docs.map(d=>({id:d.id,...d.data()}))), ()=>{});
+    return unsub;
+  }, []);
+
+  async function handleSave(e) {
+    e.preventDefault(); setSaving(true);
+    try {
+      await addDoc(collection(db,'farmingTips'), { ...form, order: tips.length, createdAt: serverTimestamp() });
+      setForm({ icon:'🌱', title:'', te:'', en:'' }); setShowForm(false);
+    } catch(_){}
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <div className="admin-section-hdr">
+        <h2 className="admin-section-title">🌾 Farming Tips ({tips.length})</h2>
+        <button className="admin-add-btn" onClick={() => setShowForm(true)}>＋ Add Tip</button>
+      </div>
+      <p className="admin-hint">Tips appear on the Farming page. Default tips show if none are added here.</p>
+
+      {showForm && (
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">🌾 Add Farming Tip</h2>
+              <button className="modal-close" onClick={() => setShowForm(false)}>✕</button>
+            </div>
+            <form className="modal-body" onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'80px 1fr', gap:10 }}>
+                <div><label className="form-label">Icon</label><input className="form-input" value={form.icon} onChange={e=>setForm(f=>({...f,icon:e.target.value}))} /></div>
+                <div><label className="form-label">Title *</label><input className="form-input" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} required placeholder="జీవామృతం / Jeevamrutham" /></div>
+              </div>
+              <div><label className="form-label">Telugu Description</label><textarea className="form-input" rows={3} value={form.te} onChange={e=>setForm(f=>({...f,te:e.target.value}))} /></div>
+              <div><label className="form-label">English Description</label><textarea className="form-input" rows={3} value={form.en} onChange={e=>setForm(f=>({...f,en:e.target.value}))} /></div>
+              <div className="modal-footer">
+                <button type="button" className="btn-cancel" onClick={()=>setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn-save" disabled={saving}>{saving?'Saving…':'💾 Add Tip'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {tips.length === 0 && <div className="admin-empty">No custom tips. Default tips are shown on the Farming page.</div>}
+        {tips.map(tip => (
+          <div key={tip.id} style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:10, padding:'12px 16px', display:'flex', gap:12, alignItems:'flex-start' }}>
+            <span style={{ fontSize:'1.8rem' }}>{tip.icon}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:700, marginBottom:4 }}>{tip.title}</div>
+              {tip.en && <div style={{ fontSize:'0.8rem', color:'#666' }}>{tip.en}</div>}
+            </div>
+            <button className="admin-del-btn" onClick={() => window.confirm('Delete?')&&deleteDoc(doc(db,'farmingTips',tip.id)).catch(()=>{})}>🗑️</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Health Tips Tab ── */
+function HealthTipsTab() {
+  const [tips,    setTips]    = useState([]);
+  const [showForm,setShowForm]= useState(false);
+  const [form,    setForm]    = useState({ icon:'🌡️', color:'#ef4444', title:'', symptoms_en:'', home_en:'', tablet:'', dose_en:'', danger:'' });
+  const [saving,  setSaving]  = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db,'healthTips'), s => setTips(s.docs.map(d=>({id:d.id,...d.data()}))), ()=>{});
+    return unsub;
+  }, []);
+
+  async function handleSave(e) {
+    e.preventDefault(); setSaving(true);
+    try {
+      await addDoc(collection(db,'healthTips'), { ...form, order: tips.length, createdAt: serverTimestamp() });
+      setForm({ icon:'🌡️', color:'#ef4444', title:'', symptoms_en:'', home_en:'', tablet:'', dose_en:'', danger:'' });
+      setShowForm(false);
+    } catch(_){}
+    setSaving(false);
+  }
+
+  return (
+    <div>
+      <div className="admin-section-hdr">
+        <h2 className="admin-section-title">🏥 Health Tips ({tips.length})</h2>
+        <button className="admin-add-btn" onClick={() => setShowForm(true)}>＋ Add Condition</button>
+      </div>
+      <p className="admin-hint">Health conditions appear on the Health page. Default guide shows if none are added.</p>
+
+      {showForm && (
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal-box" style={{ maxWidth:560 }} onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">🏥 Add Health Condition</h2>
+              <button className="modal-close" onClick={() => setShowForm(false)}>✕</button>
+            </div>
+            <form className="modal-body" onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'70px 70px 1fr', gap:10 }}>
+                <div><label className="form-label">Icon</label><input className="form-input" value={form.icon} onChange={e=>setForm(f=>({...f,icon:e.target.value}))} /></div>
+                <div><label className="form-label">Color</label><input className="form-input" type="color" value={form.color} onChange={e=>setForm(f=>({...f,color:e.target.value}))} /></div>
+                <div><label className="form-label">Title *</label><input className="form-input" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} required placeholder="జ్వరం / Fever" /></div>
+              </div>
+              <div><label className="form-label">Symptoms</label><input className="form-input" value={form.symptoms_en} onChange={e=>setForm(f=>({...f,symptoms_en:e.target.value}))} placeholder="Body feels hot, headache..." /></div>
+              <div><label className="form-label">Home Remedy</label><textarea className="form-input" rows={2} value={form.home_en} onChange={e=>setForm(f=>({...f,home_en:e.target.value}))} /></div>
+              <div><label className="form-label">Tablet Name</label><input className="form-input" value={form.tablet} onChange={e=>setForm(f=>({...f,tablet:e.target.value}))} placeholder="Paracetamol 500mg (Crocin)" /></div>
+              <div><label className="form-label">Dosage</label><input className="form-input" value={form.dose_en} onChange={e=>setForm(f=>({...f,dose_en:e.target.value}))} /></div>
+              <div><label className="form-label">⚠️ Danger Sign (when to see doctor)</label><input className="form-input" value={form.danger} onChange={e=>setForm(f=>({...f,danger:e.target.value}))} /></div>
+              <div className="modal-footer">
+                <button type="button" className="btn-cancel" onClick={()=>setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn-save" disabled={saving}>{saving?'Saving…':'💾 Add'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {tips.length === 0 && <div className="admin-empty">No custom tips. Default health guide is shown on the Health page.</div>}
+        {tips.map(tip => (
+          <div key={tip.id} style={{ background:'#fff', border:`1.5px solid ${tip.color}40`, borderRadius:10, padding:'12px 16px', display:'flex', gap:12, alignItems:'flex-start' }}>
+            <span style={{ fontSize:'1.8rem' }}>{tip.icon}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:700, color:tip.color, marginBottom:3 }}>{tip.title}</div>
+              {tip.symptoms_en && <div style={{ fontSize:'0.78rem', color:'#666' }}>Symptoms: {tip.symptoms_en}</div>}
+              {tip.tablet && <div style={{ fontSize:'0.78rem', color:'#555', marginTop:2 }}>💊 {tip.tablet}</div>}
+            </div>
+            <button className="admin-del-btn" onClick={() => window.confirm('Delete?')&&deleteDoc(doc(db,'healthTips',tip.id)).catch(()=>{})}>🗑️</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

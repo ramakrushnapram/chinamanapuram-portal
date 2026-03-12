@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { db } from '../firebase';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 
-const FARMING_TIPS = [
+const DEFAULT_FARMING_TIPS = [
   {
     icon: '🌱',
     title: 'జీవామృతం / Jeevamrutham',
@@ -40,6 +43,19 @@ const FARMING_TIPS = [
 ];
 
 export default function Farming() {
+  const [tips, setTips] = useState(DEFAULT_FARMING_TIPS);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, 'farmingTips'), orderBy('order', 'asc')),
+      snap => {
+        if (snap.docs.length > 0) setTips(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      },
+      () => {} // fallback to defaults on error
+    );
+    return unsub;
+  }, []);
+
   return (
     <div>
       <Navbar />
@@ -57,8 +73,8 @@ export default function Farming() {
         </div>
 
         <div className="farming-page-grid">
-          {FARMING_TIPS.map((tip, i) => (
-            <div key={i} className="farming-card">
+          {tips.map((tip, i) => (
+            <div key={tip.id || i} className="farming-card">
               <div className="farming-card-icon">{tip.icon}</div>
               <div className="farming-card-title">{tip.title}</div>
               <div className="farming-card-te">{tip.te}</div>

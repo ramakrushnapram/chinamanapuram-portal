@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { db } from '../firebase';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 
-const HEALTH_GUIDE = [
+const DEFAULT_HEALTH_GUIDE = [
   {
     icon:'🌡️', color:'#ef4444',
     title:'జ్వరం / Fever',
@@ -116,6 +119,19 @@ const HEALTH_GUIDE = [
 ];
 
 export default function Health() {
+  const [guide, setGuide] = useState(DEFAULT_HEALTH_GUIDE);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(collection(db, 'healthTips'), orderBy('order', 'asc')),
+      snap => {
+        if (snap.docs.length > 0) setGuide(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      },
+      () => {}
+    );
+    return unsub;
+  }, []);
+
   return (
     <div>
       <Navbar />
@@ -144,7 +160,7 @@ export default function Health() {
 
         {/* Cards grid */}
         <div className="health-page-grid">
-          {HEALTH_GUIDE.map((item, i) => (
+          {guide.map((item, i) => (
             <div key={i} className="health-card" style={{ '--hc': item.color }}>
               <div className="hc-top">
                 <span className="hc-icon">{item.icon}</span>
