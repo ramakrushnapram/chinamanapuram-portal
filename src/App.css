@@ -1001,7 +1001,7 @@ html { overflow-x: hidden; }
   .events-grid { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 1050px) {
   .navbar-links {
     display: none;
     position: absolute;
@@ -1015,6 +1015,8 @@ html { overflow-x: hidden; }
     border-bottom: 2px solid var(--accent);
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     z-index: 200;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
   }
   .navbar-links.open { display: flex; }
   .navbar-links a { padding: 11px 16px; border-radius: 8px; font-size: 0.92rem; }
@@ -4046,7 +4048,7 @@ html { overflow-x: hidden; }
    NAVBAR MOBILE — auth user area responsive
    ═══════════════════════════════════════════════════════════ */
 
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .navbar-user-area   { display: none; }
   .navbar-mobile-auth { display: block; }
   .navbar-mobile-auth li { list-style: none; }
