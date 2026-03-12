@@ -1,23 +1,28 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
-import { auth, db } from '../firebase';
-import { signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
-const ADMIN_EMAILS  = ['admin@chinamanapuram.com'];
-const ADMIN_PHONES  = ['8187038358'];
+const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
+const ADMIN_PHONES = ['8187038358'];
 
 export default function Login() {
   const { signIn, signInWithGoogle, logout } = useAuth();
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const from      = location.state?.from || '/';
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
   const justLoggedOut = location.state?.loggedOut === true;
 
-  /* Tab: 'email' | 'otp' */
-  const [tab, setTab] = useState('otp');
+  /* Tab: 'pin' | 'email' */
+  const [tab, setTab] = useState('pin');
+
+  /* ── Mobile + PIN state ── */
+  const [phone,    setPhone]    = useState('');
+  const [pin,      setPin]      = useState('');
+  const [pinStep,  setPinStep]  = useState(1); // 1: enter phone, 2: enter PIN
+  const [pinLoading, setPinLoading] = useState(false);
 
   /* ── Email/Password state ── */
   const [email,    setEmail]    = useState('');
@@ -26,30 +31,8 @@ export default function Login() {
   const [loading,  setLoading]  = useState(false);
   const [gLoading, setGLoading] = useState(false);
 
-  /* ── OTP state ── */
-  const [phone,     setPhone]     = useState('');
-  const [otp,       setOtp]       = useState('');
-  const [otpSent,   setOtpSent]   = useState(false);
-  const [otpLoading,setOtpLoading]= useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [resendSecs,setResendSecs]= useState(0);
-  const confirmRef  = useRef(null);
-  const recaptchaRef= useRef(null);
-  const timerRef    = useRef(null);
-
   /* ── Shared error ── */
   const [error, setError] = useState('');
-
-  /* Cleanup reCAPTCHA on unmount */
-  useEffect(() => {
-    return () => {
-      timerRef.current && clearInterval(timerRef.current);
-      if (recaptchaRef.current) {
-        try { recaptchaRef.current.clear(); } catch(_) {}
-        recaptchaRef.current = null;
-      }
-    };
-  }, []);
 
   /* ── Helpers ── */
   async function checkUserStatus(uid) {
@@ -60,37 +43,14 @@ export default function Login() {
     return 'approved';
   }
 
-  function startResendTimer() {
-    setResendSecs(60);
-    timerRef.current = setInterval(() => {
-      setResendSecs(s => {
-        if (s <= 1) { clearInterval(timerRef.current); return 0; }
-        return s - 1;
-      });
-    }, 1000);
-  }
-
-  function friendlyPhoneError(code) {
-    switch (code) {
-      case 'auth/invalid-phone-number':   return 'Invalid phone number. Enter a valid 10-digit number.';
-      case 'auth/too-many-requests':      return 'Too many OTP requests. Please wait and try again.';
-      case 'auth/invalid-verification-code': return 'Wrong OTP. Please check and try again.';
-      case 'auth/code-expired':           return 'OTP has expired. Please request a new one.';
-      case 'auth/missing-phone-number':   return 'Please enter your mobile number.';
-      case 'auth/quota-exceeded':         return 'SMS quota exceeded. Please try again later.';
-      case 'auth/operation-not-allowed':  return 'Phone login is not enabled. Please contact admin.';
-      default: return 'OTP failed. Please try again.';
-    }
-  }
-
   function friendlyEmailError(code) {
     switch (code) {
-      case 'auth/user-not-found':      return 'No account found with this email.';
-      case 'auth/wrong-password':      return 'Incorrect password. Please try again.';
-      case 'auth/invalid-email':       return 'Please enter a valid email address.';
-      case 'auth/too-many-requests':   return 'Too many attempts. Please try again later.';
-      case 'auth/invalid-credential':  return 'Invalid email or password.';
-      default:                         return 'Login failed. Please try again.';
+      case 'auth/user-not-found':     return 'No account found with this email.';
+      case 'auth/wrong-password':     return 'Incorrect password. Please try again.';
+      case 'auth/invalid-email':      return 'Please enter a valid email address.';
+      case 'auth/too-many-requests':  return 'Too many attempts. Please try again later.';
+      case 'auth/invalid-credential': return 'Invalid email or password.';
+      default:                        return 'Login failed. Please try again.';
     }
   }
 
@@ -98,14 +58,14 @@ export default function Login() {
     switch (code) {
       case 'auth/popup-closed-by-user':    return '';
       case 'auth/popup-blocked':           return 'Popup was blocked. Please allow popups and try again.';
-      case 'auth/unauthorized-domain':     return 'Google sign-in not enabled for this domain. Use Mobile OTP instead.';
+      case 'auth/unauthorized-domain':     return 'Google sign-in not enabled for this domain. Use Mobile + PIN instead.';
       case 'auth/cancelled-popup-request': return '';
-      default: return 'Google sign-in failed. Please use Mobile OTP instead.';
+      default: return 'Google sign-in failed. Please use Mobile + PIN instead.';
     }
   }
 
-  /* ── Send OTP ── */
-  async function handleSendOtp(e) {
+  /* ── Mobile + PIN login ── */
+  function handlePhoneNext(e) {
     e.preventDefault();
     const cleaned = phone.replace(/\s/g, '');
     if (!/^\d{10}$/.test(cleaned)) {
@@ -113,90 +73,47 @@ export default function Login() {
       return;
     }
     setError('');
-    setOtpLoading(true);
-
-    try {
-      /* Init invisible reCAPTCHA */
-      if (!recaptchaRef.current) {
-        recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {},
-          'expired-callback': () => { recaptchaRef.current = null; },
-        });
-        await recaptchaRef.current.render();
-      }
-
-      const fullPhone = '+91' + cleaned;
-      const result = await signInWithPhoneNumber(auth, fullPhone, recaptchaRef.current);
-      confirmRef.current = result;
-      setOtpSent(true);
-      startResendTimer();
-    } catch (err) {
-      setError(friendlyPhoneError(err.code));
-      /* Reset reCAPTCHA on error */
-      if (recaptchaRef.current) {
-        try { recaptchaRef.current.clear(); } catch(_) {}
-        recaptchaRef.current = null;
-      }
-    }
-    setOtpLoading(false);
+    setPinStep(2);
   }
 
-  /* ── Resend OTP ── */
-  async function handleResend() {
-    if (recaptchaRef.current) {
-      try { recaptchaRef.current.clear(); } catch(_) {}
-      recaptchaRef.current = null;
-    }
-    setOtpSent(false);
-    setOtp('');
-    setError('');
-  }
-
-  /* ── Verify OTP ── */
-  async function handleVerifyOtp(e) {
+  async function handlePinLogin(e) {
     e.preventDefault();
-    if (otp.length !== 6) { setError('Enter the 6-digit OTP.'); return; }
+    if (pin.length !== 4) { setError('Enter your 4-digit PIN.'); return; }
     setError('');
-    setVerifying(true);
+    setPinLoading(true);
+    const cleaned = phone.replace(/\s/g, '');
     try {
-      const cred = await confirmRef.current.confirm(otp);
-      const user = cred.user;
-
-      /* Admin phone bypasses status check */
-      if (!ADMIN_PHONES.includes(phone.replace(/\s/g, ''))) {
-        const status = await checkUserStatus(user.uid);
+      const mobileEmail = `${cleaned}@chinamanapuram.in`;
+      const cred = await signIn(mobileEmail, pin);
+      if (!ADMIN_PHONES.includes(cleaned)) {
+        const status = await checkUserStatus(cred.user.uid);
         if (status === 'pending') {
           await logout();
           setError('⏳ Your account is pending admin approval. You will be notified via WhatsApp once approved.');
-          setVerifying(false);
+          setPinLoading(false);
           return;
         }
         if (status === 'rejected') {
           await logout();
           setError('❌ Your registration was not approved. Please contact the Panchayat office.');
-          setVerifying(false);
+          setPinLoading(false);
           return;
         }
-        /* New phone user — check if registered in village portal */
-        if (status === 'approved') {
-          /* Check users collection by phone */
-          const q = query(collection(db,'users'), where('mobile','==', phone.replace(/\s/g,'')));
-          const snap = await getDocs(q);
-          if (snap.empty) {
-            /* Not registered — send to register */
-            await logout();
-            navigate('/register', { state: { phonePreFill: phone.replace(/\s/g,'') } });
-            return;
-          }
-        }
       }
-
       navigate(from, { replace: true });
     } catch (err) {
-      setError(friendlyPhoneError(err.code));
+      const code = err.code;
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+        setError('No account found for this mobile number. Please register first.');
+      } else if (code === 'auth/wrong-password') {
+        setError('Incorrect PIN. Please try again.');
+      } else if (code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait and try again later.');
+      } else {
+        setError('Login failed. Please try again.');
+      }
     }
-    setVerifying(false);
+    setPinLoading(false);
   }
 
   /* ── Email submit ── */
@@ -246,16 +163,9 @@ export default function Login() {
     setGLoading(false);
   }
 
-  /* ── OTP input auto-advance ── */
-  function handleOtpChange(val) {
-    if (/^\d{0,6}$/.test(val)) setOtp(val);
-  }
-
   return (
     <div className="auth-page">
       <Navbar />
-      {/* Invisible reCAPTCHA container */}
-      <div id="recaptcha-container" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: -1 }} />
 
       <div className="auth-container">
         <div className="auth-card">
@@ -277,12 +187,12 @@ export default function Login() {
           {/* Tab switcher */}
           <div style={{ display:'flex', gap:0, marginBottom:20, border:'1.5px solid #e5e7eb', borderRadius:12, overflow:'hidden' }}>
             <button type="button"
-              onClick={() => { setTab('otp'); setError(''); }}
+              onClick={() => { setTab('pin'); setError(''); setPinStep(1); setPin(''); }}
               style={{ flex:1, padding:'10px 0', border:'none', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', transition:'all 0.2s',
-                background: tab==='otp' ? '#1a6b3c' : '#fff',
-                color: tab==='otp' ? '#fff' : '#555',
+                background: tab==='pin' ? '#1a6b3c' : '#fff',
+                color: tab==='pin' ? '#fff' : '#555',
               }}>
-              📱 Mobile OTP
+              📱 Mobile + PIN
             </button>
             <button type="button"
               onClick={() => { setTab('email'); setError(''); }}
@@ -298,12 +208,12 @@ export default function Login() {
           {/* Error */}
           {error && <div className="auth-error" style={{ marginBottom:14 }}>⚠️ {error}</div>}
 
-          {/* ── OTP TAB ── */}
-          {tab === 'otp' && (
+          {/* ── MOBILE + PIN TAB ── */}
+          {tab === 'pin' && (
             <div>
-              {!otpSent ? (
+              {pinStep === 1 ? (
                 /* Step 1: Enter phone */
-                <form onSubmit={handleSendOtp}>
+                <form onSubmit={handlePhoneNext}>
                   <div className="auth-field">
                     <label className="auth-label">Mobile Number</label>
                     <div style={{ display:'flex', gap:8, alignItems:'center' }}>
@@ -318,54 +228,48 @@ export default function Login() {
                         placeholder="10-digit mobile number"
                         maxLength={10}
                         autoFocus
-                        disabled={otpLoading}
                         style={{ flex:1 }}
                       />
                     </div>
-                    <span className="auth-field-hint">Enter your 10-digit mobile number (e.g. 9876543210)</span>
+                    <span className="auth-field-hint">Enter the mobile number you registered with</span>
                   </div>
-                  <button type="submit" className="auth-btn-primary" disabled={otpLoading || phone.length !== 10}>
-                    {otpLoading ? <><span className="auth-spinner" /> Sending OTP…</> : '📨 Send OTP'}
+                  <button type="submit" className="auth-btn-primary" disabled={phone.replace(/\s/g,'').length !== 10}>
+                    Continue →
                   </button>
                 </form>
               ) : (
-                /* Step 2: Enter OTP */
-                <form onSubmit={handleVerifyOtp}>
+                /* Step 2: Enter PIN */
+                <form onSubmit={handlePinLogin}>
                   {/* Phone display */}
                   <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:10, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                     <span style={{ fontSize:'0.85rem', color:'#166534', fontWeight:600 }}>
-                      📱 OTP sent to +91 {phone}
+                      📱 +91 {phone}
                     </span>
-                    <button type="button" onClick={handleResend}
+                    <button type="button" onClick={() => { setPinStep(1); setPin(''); setError(''); }}
                       style={{ background:'none', border:'none', color:'#1a6b3c', fontSize:'0.8rem', cursor:'pointer', fontWeight:700, textDecoration:'underline' }}>
                       Change
                     </button>
                   </div>
 
                   <div className="auth-field">
-                    <label className="auth-label">Enter 6-Digit OTP</label>
+                    <label className="auth-label">4-Digit PIN</label>
                     <input
                       className="auth-input"
-                      type="text"
+                      type="password"
                       inputMode="numeric"
-                      value={otp}
-                      onChange={e => handleOtpChange(e.target.value)}
-                      placeholder="• • • • • •"
-                      maxLength={6}
+                      value={pin}
+                      onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) { setPin(e.target.value); setError(''); } }}
+                      placeholder="• • • •"
+                      maxLength={4}
                       autoFocus
-                      disabled={verifying}
-                      style={{ fontSize:'1.4rem', letterSpacing:'0.4em', textAlign:'center', fontWeight:800 }}
+                      disabled={pinLoading}
+                      style={{ fontSize:'1.6rem', letterSpacing:'0.5em', textAlign:'center', fontWeight:800 }}
                     />
-                    <span className="auth-field-hint">
-                      {resendSecs > 0
-                        ? `Resend OTP in ${resendSecs}s`
-                        : <button type="button" onClick={handleResend} style={{ background:'none', border:'none', color:'#1a6b3c', cursor:'pointer', fontWeight:700, fontSize:'0.82rem', padding:0 }}>Resend OTP</button>
-                      }
-                    </span>
+                    <span className="auth-field-hint">Enter the 4-digit PIN you set during registration</span>
                   </div>
 
-                  <button type="submit" className="auth-btn-primary" disabled={verifying || otp.length !== 6}>
-                    {verifying ? <><span className="auth-spinner" /> Verifying…</> : '✅ Verify & Login'}
+                  <button type="submit" className="auth-btn-primary" disabled={pinLoading || pin.length !== 4}>
+                    {pinLoading ? <><span className="auth-spinner" /> Signing in…</> : '🔐 Login'}
                   </button>
                 </form>
               )}
@@ -385,6 +289,10 @@ export default function Login() {
                 )}
                 {gLoading ? 'Signing in…' : 'Continue with Google'}
               </button>
+
+              <div style={{ marginTop:16, textAlign:'center', fontSize:'0.82rem', color:'#888' }}>
+                Forgot PIN? <Link to="/register" className="auth-link" style={{ fontSize:'0.82rem' }}>Re-register with a new PIN</Link>
+              </div>
             </div>
           )}
 
