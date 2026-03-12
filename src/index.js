@@ -14,8 +14,19 @@ window.addEventListener('unhandledrejection', event => {
   const msg  = reason.message || '';
   const isFirebase = reason.name === 'FirebaseError' || code.includes('/') ||
     msg.includes('Firebase') || msg.includes('firestore') ||
-    msg.includes('permissions') || msg.includes('document');
+    msg.includes('permissions') || msg.includes('document') ||
+    msg.includes('INTERNAL ASSERTION FAILED') || msg.includes('Unexpected state');
   if (isFirebase) event.preventDefault();
+});
+
+// Suppress Firestore INTERNAL ASSERTION errors from crashing the app
+window.addEventListener('error', event => {
+  const msg = event.message || '';
+  if (msg.includes('INTERNAL ASSERTION FAILED') || msg.includes('Unexpected state')) {
+    event.preventDefault();
+    console.warn('Firestore internal error suppressed — page still works normally.');
+    return false;
+  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

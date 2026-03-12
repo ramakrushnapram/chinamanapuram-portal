@@ -59,7 +59,7 @@ export default function Profile() {
   }
 
   const displayName = isAdmin
-    ? (user.displayName || 'Pasala Venkata Parvathi')
+    ? (user.displayName || 'Administrator')
     : (user.displayName || 'Village Member');
 
   const joinDate = user.metadata?.creationTime
@@ -383,7 +383,7 @@ export default function Profile() {
 
           {/* ── Logout ── */}
           <div className="pr-logout-section">
-            <button className="pr-logout-btn" onClick={async () => { await logout(); navigate('/'); }}>
+            <button className="pr-logout-btn" onClick={async () => { await logout(); navigate('/login', { state: { loggedOut: true } }); }}>
               🚪 Sign Out
             </button>
           </div>

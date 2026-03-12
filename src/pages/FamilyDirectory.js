@@ -23,9 +23,15 @@ const PALETTE = [
   { bg: '#fef9c3', fg: '#713f12' },
 ];
 
-function palette(id) { return PALETTE[(id - 1) % PALETTE.length]; }
+function palette(id, idx = 0) {
+  // Support numeric fam.id (seed data) or fall back to index
+  const n = typeof id === 'number' && isFinite(id) ? id : idx + 1;
+  return PALETTE[((n - 1) % PALETTE.length + PALETTE.length) % PALETTE.length];
+}
 function initials(name) {
-  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
 }
 function maskPhone(phone) {
   if (!phone) return '';
@@ -229,9 +235,12 @@ function FamilyPhotoUpload({ fam }) {
 /* ─────────────────────────────────────────
    FamilyDirectory – Main Page
 ───────────────────────────────────────── */
+const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
+
 export default function FamilyDirectory() {
   const { user } = useAuth();
   const isLoggedIn = !!user;
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   const [families,      setFamilies]      = useState([]);
   const [loading,       setLoading]       = useState(true); // eslint-disable-line no-unused-vars
@@ -315,6 +324,16 @@ export default function FamilyDirectory() {
 
       {/* ── Hero ── */}
       <div className="fd-hero">
+        {/* Animated background orbs */}
+        {[
+          { w:180, h:180, top:'10%', left:'5%',  delay:'0s',   dur:'8s',  color:'rgba(45,153,89,0.5)'   },
+          { w:120, h:120, top:'60%', left:'80%', delay:'2s',   dur:'10s', color:'rgba(232,137,26,0.4)'  },
+          { w:90,  h:90,  top:'30%', left:'70%', delay:'1s',   dur:'7s',  color:'rgba(255,255,255,0.15)' },
+          { w:200, h:200, top:'70%', left:'10%', delay:'3s',   dur:'12s', color:'rgba(26,107,60,0.6)'   },
+          { w:60,  h:60,  top:'20%', left:'50%', delay:'0.5s', dur:'6s',  color:'rgba(255,215,0,0.2)'   },
+        ].map((o, i) => (
+          <div key={i} className="fd-hero-orb" style={{ width:o.w, height:o.h, top:o.top, left:o.left, background:o.color, animationDuration:o.dur, animationDelay:o.delay }} />
+        ))}
         <div className="fd-hero-content">
           <div className="fd-hero-icon">👨‍👩‍👧‍👦</div>
           <h1 className="fd-hero-title">Family Directory</h1>
@@ -383,10 +402,10 @@ export default function FamilyDirectory() {
           </div>
         ) : (
           <div className="fd-grid">
-            {filtered.map(fam => {
-              const pal = palette(fam.id);
+            {filtered.map((fam, idx) => {
+              const pal = palette(fam.id, idx);
               return (
-                <div className="family-card" key={fam.id}>
+                <div className="family-card" key={fam.firestoreId || fam.id || idx} style={{ '--card-i': idx }}>
                   {/* top color strip */}
                   <div className="fc-strip" style={{ background: pal.fg }} />
 
@@ -426,7 +445,8 @@ export default function FamilyDirectory() {
                         <span className="fc-badge fc-badge-green">👥 {fam.members} members</span>
                         <span className="fc-badge fc-badge-orange">📅 Since {fam.since}</span>
                       </div>
-                      {isLoggedIn && (
+                      {/* Only the family owner or admin can edit/upload photo */}
+                      {isLoggedIn && (isAdmin || user.uid === fam.userId) && (
                         <div className="fc-actions">
                           <button className="fc-edit-btn" onClick={() => handleEditClick(fam)}>✏️ Edit</button>
                           <FamilyPhotoUpload fam={fam} />

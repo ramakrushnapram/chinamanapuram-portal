@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 
 const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
 
@@ -62,10 +62,13 @@ export default function Register() {
 
   function friendlyError(code) {
     switch (code) {
-      case 'auth/email-already-in-use': return 'This email is already registered. Please sign in.';
-      case 'auth/invalid-email':        return 'Please enter a valid email address.';
-      case 'auth/weak-password':        return 'Password should be at least 6 characters.';
-      default:                          return 'Registration failed. Please try again.';
+      case 'auth/email-already-in-use':  return 'This email is already registered. Please sign in instead.';
+      case 'auth/invalid-email':         return 'Please enter a valid email address.';
+      case 'auth/weak-password':         return 'Password should be at least 6 characters.';
+      case 'auth/too-many-requests':     return 'Too many attempts. Please wait a few minutes and try again.';
+      case 'auth/network-request-failed':return 'Network error. Please check your internet connection and try again.';
+      case 'auth/operation-not-allowed': return 'Email registration is not enabled. Please contact the admin.';
+      default:                           return 'Registration failed. Please try again.';
     }
   }
 
@@ -75,8 +78,18 @@ export default function Register() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setError(''); setLoading(true);
+    let cred = null;
     try {
-      const cred = await signUp(form.email.trim(), form.password, form.fullName.trim(), {
+      // Check if mobile number is already registered
+      const mobileClean = form.mobile.trim();
+      const mobileQuery = await getDocs(query(collection(db, 'users'), where('mobile', '==', mobileClean)));
+      if (!mobileQuery.empty) {
+        setError('This mobile number is already registered. Please use a different number or sign in.');
+        setLoading(false);
+        return;
+      }
+
+      cred = await signUp(form.email.trim(), form.password, form.fullName.trim(), {
         familyName: form.familyName.trim(),
         ward:       form.ward,
         mobile:     form.mobile.trim(),
@@ -120,7 +133,7 @@ export default function Register() {
       await logout();
 
       // Get admin WhatsApp number from Firestore
-      let adminPhone = '919440151291'; // fallback — admin number
+      let adminPhone = '918187038358'; // fallback — admin number
       try {
         const adminSnap = await getDoc(doc(db, 'settings', 'admin'));
         if (adminSnap.exists() && adminSnap.data().whatsappNumber) {
@@ -129,13 +142,17 @@ export default function Register() {
         }
       } catch (_) {}
 
-      const adminMsg = `New registration request:\nName: ${form.fullName.trim()}\nMobile: ${form.mobile.trim()}\nEmail: ${form.email.trim()}\nWard: ${form.ward || 'Not specified'}\n\nPlease login to Admin panel to approve:\nhttps://chinamanapuram-portal.vercel.app/admin\n\n- Chinamanapuram Village Portal`;
+      const adminMsg = `New registration from ${form.fullName.trim()} - ${form.mobile.trim()} - Please approve at chinamanapuram portal\n\nhttps://chinamanapuram-portal.vercel.app/admin\n\nEmail: ${form.email.trim()}\nWard: ${form.ward || 'Not specified'}`;
 
       const hasAdminPhone = adminPhone !== '911234567890';
       setUserData({ name: form.fullName.trim(), mobile: form.mobile.trim(), adminPhone, adminMsg, hasAdminPhone });
       setSubmitted(true);
 
     } catch (err) {
+      // If Firestore save failed but auth user was created, log them out cleanly
+      if (cred) {
+        try { await logout(); } catch (_) {}
+      }
       setError(friendlyError(err.code));
     } finally {
       setLoading(false);
@@ -147,7 +164,8 @@ export default function Register() {
       case 'auth/popup-closed-by-user':    return '';
       case 'auth/popup-blocked':           return 'Popup was blocked. Please allow popups and try again.';
       case 'auth/cancelled-popup-request': return '';
-      default: return `Google sign-up failed (${code || 'unknown'}). Please try again.`;
+      case 'auth/unauthorized-domain':     return 'Google sign-in is not enabled for this domain yet. Please use email & password registration, or contact the admin to enable Google sign-in.';
+      default: return `Google sign-up failed. Please use email & password registration instead.`;
     }
   }
 

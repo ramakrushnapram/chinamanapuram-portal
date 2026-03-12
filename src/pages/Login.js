@@ -12,6 +12,7 @@ export default function Login() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const from      = location.state?.from || '/';
+  const justLoggedOut = location.state?.loggedOut === true;
 
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
@@ -72,12 +73,12 @@ export default function Login() {
 
   function friendlyGoogleError(code) {
     switch (code) {
-      case 'auth/popup-closed-by-user':   return '';
-      case 'auth/popup-blocked':          return 'Popup was blocked. Please allow popups for this site and try again.';
-      case 'auth/unauthorized-domain':    return 'This domain is not authorized. Please contact admin.';
-      case 'auth/operation-not-allowed':  return 'Google sign-in is not enabled. Please contact admin.';
+      case 'auth/popup-closed-by-user':    return '';
+      case 'auth/popup-blocked':           return 'Popup was blocked. Please allow popups for this site and try again.';
+      case 'auth/unauthorized-domain':     return 'Google sign-in is not enabled for this domain yet. Please use email & password to sign in, or contact the admin.';
+      case 'auth/operation-not-allowed':   return 'Google sign-in is not enabled. Please contact admin.';
       case 'auth/cancelled-popup-request': return '';
-      default: return `Google sign-in failed (${code || 'unknown'}). Please try again.`;
+      default: return `Google sign-in failed. Please use email & password instead.`;
     }
   }
 
@@ -87,16 +88,19 @@ export default function Login() {
     try {
       const cred = await signInWithGoogle();
 
-      const status = await checkUserStatus(cred.user.uid);
-      if (status === 'pending') {
-        await logout();
-        setError('⏳ Your account is pending admin approval. You will be notified via WhatsApp once approved.');
-        return;
-      }
-      if (status === 'rejected') {
-        await logout();
-        setError('❌ Your registration was not approved. Please contact the Panchayat office.');
-        return;
+      // Admin always gets through — no status check needed
+      if (!ADMIN_EMAILS.includes(cred.user.email)) {
+        const status = await checkUserStatus(cred.user.uid);
+        if (status === 'pending') {
+          await logout();
+          setError('⏳ Your account is pending admin approval. You will be notified via WhatsApp once approved.');
+          return;
+        }
+        if (status === 'rejected') {
+          await logout();
+          setError('❌ Your registration was not approved. Please contact the Panchayat office.');
+          return;
+        }
       }
 
       navigate(from, { replace: true });
@@ -114,6 +118,13 @@ export default function Login() {
 
       <div className="auth-container">
         <div className="auth-card">
+          {/* Signed-out notice */}
+          {justLoggedOut && (
+            <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:10, padding:'10px 16px', marginBottom:16, color:'#166534', fontSize:'0.88rem', textAlign:'center' }}>
+              ✅ You have been signed out successfully.
+            </div>
+          )}
+
           {/* Header */}
           <div className="auth-header">
             <div className="auth-logo">🏘️</div>

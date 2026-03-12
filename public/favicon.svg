@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Green background circle -->
+  <circle cx="32" cy="32" r="32" fill="#1a6b3c"/>
+  <!-- House / village icon in white -->
+  <path d="M32 12 L10 30 L16 30 L16 52 L28 52 L28 40 L36 40 L36 52 L48 52 L48 30 L54 30 Z" fill="#ffffff" opacity="0.95"/>
+  <!-- Door -->
+  <rect x="28" y="40" width="8" height="12" rx="1" fill="#1a6b3c"/>
+  <!-- Window left -->
+  <rect x="18" y="33" width="7" height="7" rx="1" fill="#a7f3d0"/>
+  <!-- Window right -->
+  <rect x="39" y="33" width="7" height="7" rx="1" fill="#a7f3d0"/>
+  <!-- Gold accent dot (sun) -->
+  <circle cx="32" cy="22" r="3" fill="#f59e0b"/>
+</svg>

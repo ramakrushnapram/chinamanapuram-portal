@@ -6,7 +6,8 @@ import {
   addDoc, deleteDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { cloudinaryUpload, isCloudinaryConfigured } from '../utils/cloudinaryUpload';
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 
 /* ── Admin emails — add any email here to grant admin access ── */
@@ -24,6 +25,74 @@ function openWhatsApp(phone, message) {
   window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
+/* ── Generate Family PDF (browser print) ── */
+function generateFamilyPDF(member) {
+  const { familyId, name, ward, mobile, createdAt } = member;
+  const regDate = createdAt?.seconds
+    ? new Date(createdAt.seconds * 1000)
+    : new Date();
+  const dateStr = regDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>Family Certificate - ${familyId}</title>
+<style>
+  @page { margin: 15mm; size: A4; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Times New Roman', Georgia, serif; background:#fff; }
+  .cert { border: 8px double #1a6b3c; padding: 36px 40px; max-width: 680px; margin: 20px auto; }
+  .cert-header { text-align:center; border-bottom: 3px solid #1a6b3c; padding-bottom: 18px; margin-bottom: 18px; }
+  .emblem { font-size: 56px; display:block; margin-bottom:6px; }
+  .cert-title { font-size: 22px; font-weight: bold; color: #1a6b3c; letter-spacing: 2px; text-transform:uppercase; }
+  .cert-sub { font-size: 13px; color: #555; margin-top: 4px; }
+  .fam-id-box { background: #1a6b3c; color: #fff; font-size: 20px; font-weight: bold; padding: 7px 22px; border-radius: 8px; display: inline-block; margin: 14px 0 6px; letter-spacing: 2px; }
+  .cert-type { font-size: 16px; color: #e8891a; font-weight: bold; margin-top: 6px; text-transform:uppercase; letter-spacing:1px; }
+  .fields { margin: 18px 0; }
+  .field { display: flex; align-items:baseline; border-bottom: 1px dotted #ccc; padding: 9px 0; }
+  .field-label { font-weight: bold; min-width: 200px; color: #333; font-size:14px; }
+  .field-value { color: #1a6b3c; font-weight: bold; font-size:14px; }
+  .cert-footer { text-align:center; margin-top:24px; padding-top:18px; border-top: 2px solid #1a6b3c; }
+  .sig-name { font-size: 17px; font-weight: bold; color: #1a6b3c; }
+  .sig-title { font-size: 13px; color: #555; margin-top:3px; }
+  .issued { font-size: 11px; color: #888; margin-top: 10px; }
+  .watermark { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-30deg); font-size:80px; opacity:0.04; color:#1a6b3c; font-weight:bold; white-space:nowrap; pointer-events:none; z-index:0; }
+</style>
+</head><body>
+<div class="watermark">CHINAMANAPURAM PANCHAYAT</div>
+<div class="cert">
+  <div class="cert-header">
+    <span class="emblem">🏛️</span>
+    <div class="cert-title">Chinamanapuram Village Panchayat</div>
+    <div class="cert-sub">Gantyada Mandal · Vizianagaram District · Andhra Pradesh</div>
+    <div class="fam-id-box">${familyId}</div>
+    <div class="cert-type">Family Registration Certificate</div>
+  </div>
+  <div class="fields">
+    <div class="field"><span class="field-label">Family ID</span><span class="field-value">${familyId}</span></div>
+    <div class="field"><span class="field-label">Family Head Name</span><span class="field-value">${name || '—'}</span></div>
+    <div class="field"><span class="field-label">Village</span><span class="field-value">Chinamanapuram</span></div>
+    <div class="field"><span class="field-label">Mandal</span><span class="field-value">Gantyada</span></div>
+    <div class="field"><span class="field-label">District</span><span class="field-value">Vizianagaram</span></div>
+    <div class="field"><span class="field-label">State</span><span class="field-value">Andhra Pradesh</span></div>
+    <div class="field"><span class="field-label">Sarpanch</span><span class="field-value">Pasala Venkata Parvathi</span></div>
+    ${ward ? `<div class="field"><span class="field-label">Ward</span><span class="field-value">${ward}</span></div>` : ''}
+    ${mobile ? `<div class="field"><span class="field-label">Contact</span><span class="field-value">${mobile}</span></div>` : ''}
+    <div class="field"><span class="field-label">Registration Date</span><span class="field-value">${dateStr}</span></div>
+  </div>
+  <div class="cert-footer">
+    <div class="sig-name">Pasala Venkata Parvathi</div>
+    <div class="sig-title">Sarpanch, Chinamanapuram Village Panchayat</div>
+    <div class="issued">Issued on ${dateStr} · Official Chinamanapuram Village Portal Document</div>
+  </div>
+</div>
+<script>window.onload=function(){window.print();}</script>
+</body></html>`;
+
+  const win = window.open('', '_blank', 'width=820,height=700');
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
 /* ── Tabs ── */
 const TABS = [
   { id: 'overview',   icon: '📊', label: 'Overview'      },
@@ -33,6 +102,7 @@ const TABS = [
   { id: 'ticker',     icon: '📢', label: 'Ticker News'   },
   { id: 'announce',   icon: '📣', label: 'Announcements' },
   { id: 'events',     icon: '📅', label: 'Events'        },
+  { id: 'profile',    icon: '👤', label: 'My Profile'    },
   { id: 'settings',   icon: '⚙️', label: 'Settings'      },
 ];
 
@@ -58,15 +128,54 @@ export default function Admin() {
 
 /* ── Not logged in screen ── */
 function AdminNotLoggedIn() {
+  const [setting, setSetting] = useState(false);
+  const [setupMsg, setSetupMsg] = useState('');
+
+  async function setupAdmin() {
+    setSetting(true); setSetupMsg('');
+    try {
+      await createUserWithEmailAndPassword(auth, 'admin@chinamanapuram.com', 'Admin1234');
+      // Save admin user record to Firestore
+      const { setDoc: sd, doc: d, serverTimestamp: st } = await import('firebase/firestore');
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        await sd(d(db, 'users', uid), { name: 'Admin', email: 'admin@chinamanapuram.com', status: 'approved', createdAt: st() });
+      }
+      await signOut(auth);
+      setSetupMsg('✅ Admin account created! Login with admin@chinamanapuram.com / Admin1234');
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        setSetupMsg('ℹ️ Admin account already exists. Use admin@chinamanapuram.com / Admin1234 to login.');
+      } else {
+        setSetupMsg('❌ ' + err.message);
+      }
+    }
+    setSetting(false);
+  }
+
   return (
     <div className="admin-login-page">
       <div className="admin-login-card">
         <div className="admin-login-logo">🔐</div>
         <h1 className="admin-login-title">Admin Portal</h1>
-        <p className="admin-login-sub">You need to sign in with your admin account to access this page.</p>
-        <Link to="/login" className="admin-login-btn" style={{ display:'block', textAlign:'center', textDecoration:'none', marginTop:8 }}>
-          🔐 Sign In
+        <p className="admin-login-sub">Sign in with your admin account to access the dashboard.</p>
+        <p style={{ fontSize:'0.82rem', color:'#777', margin:'6px 0 12px', textAlign:'center' }}>
+          📧 admin@chinamanapuram.com &nbsp;|&nbsp; 🔑 Admin1234
+        </p>
+        <Link to="/login" className="admin-login-btn" style={{ display:'block', textAlign:'center', textDecoration:'none', marginTop:4 }}>
+          🔐 Sign In as Admin
         </Link>
+        {setupMsg && (
+          <div style={{ margin:'12px 0', padding:'10px 14px', borderRadius:8, fontSize:'0.83rem', background: setupMsg.startsWith('✅') ? '#d1fae5' : setupMsg.startsWith('ℹ️') ? '#dbeafe' : '#fee2e2', color: setupMsg.startsWith('✅') ? '#065f46' : setupMsg.startsWith('ℹ️') ? '#1e40af' : '#991b1b' }}>
+            {setupMsg}
+          </div>
+        )}
+        <button
+          onClick={setupAdmin} disabled={setting}
+          style={{ background:'none', border:'1px dashed #bbb', borderRadius:8, padding:'8px 16px', color:'#888', fontSize:'0.78rem', cursor:'pointer', marginTop:10, width:'100%' }}
+        >
+          {setting ? '⏳ Setting up…' : '⚙️ First Time Setup — Create Admin Account'}
+        </button>
         <Link to="/" className="admin-login-back">← Back to Village Portal</Link>
       </div>
     </div>
@@ -105,18 +214,22 @@ function AdminDashboard({ onLogout }) {
 
   useEffect(() => {
     const subs = [];
+    const onErr = (err) => {
+      // Firestore assertion errors can occur on network hiccups — silently ignore
+      console.warn('Firestore listener error (will auto-recover):', err?.code || err?.message);
+    };
     subs.push(onSnapshot(collection(db, 'complaints'),
-      s => setComplaints(s.docs.map(d => ({ ...d.data(), id: d.id }))), () => {}));
+      s => setComplaints(s.docs.map(d => ({ ...d.data(), id: d.id }))), onErr));
     subs.push(onSnapshot(collection(db, 'families'),
-      s => setFamilies(s.docs.map(d => ({ ...d.data(), id: d.id }))), () => {}));
+      s => setFamilies(s.docs.map(d => ({ ...d.data(), id: d.id }))), onErr));
     subs.push(onSnapshot(doc(db, 'settings', 'ticker'),
-      s => s.exists() && setTicker(s.data().items || []), () => {}));
+      s => s.exists() && setTicker(s.data().items || []), onErr));
     subs.push(onSnapshot(collection(db, 'announcements'),
-      s => setAnnounces(s.docs.map(d => ({ ...d.data(), id: d.id }))), () => {}));
+      s => setAnnounces(s.docs.map(d => ({ ...d.data(), id: d.id }))), onErr));
     subs.push(onSnapshot(collection(db, 'events'),
-      s => setEvents(s.docs.map(d => ({ ...d.data(), id: d.id }))), () => {}));
+      s => setEvents(s.docs.map(d => ({ ...d.data(), id: d.id }))), onErr));
     subs.push(onSnapshot(collection(db, 'users'),
-      s => setMembers(s.docs.map(d => ({ ...d.data(), id: d.id }))), () => {}));
+      s => setMembers(s.docs.map(d => ({ ...d.data(), id: d.id }))), onErr));
     return () => subs.forEach(u => u());
   }, []);
 
@@ -169,13 +282,14 @@ function AdminDashboard({ onLogout }) {
         </div>
 
         <div className="admin-content">
-          {tab === 'overview'   && <OverviewTab c={complaints} f={families} a={announces} e={events} m={members} />}
+          {tab === 'overview'   && <OverviewTab c={complaints} f={families} a={announces} e={events} m={members} onTabChange={setTab} />}
           {tab === 'members'    && <MembersTab members={members} />}
           {tab === 'complaints' && <ComplaintsTab complaints={complaints} />}
           {tab === 'families'   && <FamiliesTab families={families} />}
           {tab === 'ticker'     && <TickerTab items={ticker} />}
           {tab === 'announce'   && <AnnounceTab items={announces} />}
           {tab === 'events'     && <EventsTab items={events} />}
+          {tab === 'profile'    && <ProfileTab />}
           {tab === 'settings'   && <SettingsTab />}
         </div>
       </div>
@@ -186,8 +300,9 @@ function AdminDashboard({ onLogout }) {
 }
 
 /* ── Overview ── */
-function OverviewTab({ c, f, a, e, m }) {
+function OverviewTab({ c, f, a, e, m, onTabChange }) {
   const pendingMembers = m.filter(x => x.status === 'pending').length;
+  const pendingComplaints = c.filter(x => x.status === 'pending' || x.status === 'Pending').length;
   const approvedMembers = m.filter(x => x.status === 'approved').length;
 
   const stats = [
@@ -255,9 +370,34 @@ function OverviewTab({ c, f, a, e, m }) {
       {pendingMembers > 0 && (
         <div className="admin-pending-alert">
           ⚠️ <strong>{pendingMembers} new registration request{pendingMembers > 1 ? 's' : ''}</strong> waiting for your approval.
-          {' '}<button className="admin-pending-alert-link" onClick={() => {}}>Go to Members tab →</button>
+          {' '}<button className="admin-pending-alert-link" onClick={() => onTabChange('members')}>Go to Members tab →</button>
         </div>
       )}
+
+      {/* Quick Access Dashboard */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ margin:'0 0 12px', color:'var(--text-mid)', fontSize:'0.9rem', textTransform:'uppercase', letterSpacing:'0.06em' }}>⚡ Quick Access</h3>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:12 }}>
+          {[
+            { id:'members',    icon:'👥', label:'Members',       badge: pendingMembers,    color:'#1a6b3c' },
+            { id:'complaints', icon:'📋', label:'Complaints',    badge: pendingComplaints, color:'#e8891a' },
+            { id:'families',   icon:'👨‍👩‍👧‍👦', label:'Families',      badge: 0,                 color:'#2563eb' },
+            { id:'announce',   icon:'📣', label:'Announcements', badge: 0,                 color:'#7c3aed' },
+            { id:'events',     icon:'📅', label:'Events',        badge: 0,                 color:'#0891b2' },
+            { id:'profile',    icon:'👤', label:'My Profile',    badge: 0,                 color:'#475569' },
+          ].map(q => (
+            <button key={q.id} onClick={() => onTabChange(q.id)} style={{ position:'relative', background:'#fff', border:`2px solid ${q.color}20`, borderRadius:12, padding:'16px 12px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:6, transition:'all 0.2s', boxShadow:'0 2px 8px rgba(0,0,0,0.06)' }}
+              onMouseEnter={e => e.currentTarget.style.background=`${q.color}08`}
+              onMouseLeave={e => e.currentTarget.style.background='#fff'}>
+              <span style={{ fontSize:'1.8rem' }}>{q.icon}</span>
+              <span style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-dark)' }}>{q.label}</span>
+              {q.badge > 0 && (
+                <span style={{ position:'absolute', top:6, right:6, background:'#ef4444', color:'#fff', borderRadius:'50%', width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.7rem', fontWeight:'bold' }}>{q.badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Sarpanch Photo Upload */}
       <div className="admin-sp-upload-card">
@@ -324,9 +464,22 @@ function MembersTab({ members }) {
 
   async function approve(m) {
     try {
-      await setDoc(doc(db, 'users', m.id), { status: 'approved' }, { merge: true });
+      // Generate sequential Family ID
+      const withId = members.filter(x => x.familyId);
+      let nextNum = withId.length + 1;
+      withId.forEach(x => {
+        const n = parseInt(x.familyId?.replace('FAM-', '') || '0');
+        if (n >= nextNum) nextNum = n + 1;
+      });
+      const familyId = `FAM-${String(nextNum).padStart(3, '0')}`;
+
+      await setDoc(doc(db, 'users', m.id), { status: 'approved', familyId }, { merge: true });
+
+      // Generate & open PDF for download
+      generateFamilyPDF({ ...m, familyId });
+
       if (m.mobile) {
-        const msg = `✅ Congratulations ${m.name || ''}!\n\nYour Chinamanapuram Village Portal account has been APPROVED by the Sarpanch.\n\nYou can now login at:\nhttps://chinamanapuram-portal.vercel.app/login\n\n- Chinamanapuram Village Portal`;
+        const msg = `✅ Congratulations ${m.name || ''}!\n\nYour Chinamanapuram Village Portal account has been APPROVED.\n\nYour Family ID: ${familyId}\n\nLogin at: https://chinamanapuram-portal.vercel.app/login\n\n- Chinamanapuram Village Portal`;
         openWhatsApp(m.mobile, msg);
       }
     } catch (_) {}
@@ -399,7 +552,7 @@ function MembersTab({ members }) {
             </div>
             <div className="admin-mc-actions">
               <span className={`admin-mc-status admin-mcs-${m.status || 'pending'}`}>
-                {m.status === 'approved' ? '✅ Approved' : m.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                {m.status === 'approved' ? `✅ ${m.familyId || 'Approved'}` : m.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
               </span>
               {m.status !== 'approved' && (
                 <button className="admin-mc-approve-btn" onClick={() => approve(m)}>
@@ -409,6 +562,12 @@ function MembersTab({ members }) {
               {m.status !== 'rejected' && (
                 <button className="admin-mc-reject-btn" onClick={() => reject(m)}>
                   ❌ Reject
+                </button>
+              )}
+              {m.status === 'approved' && m.familyId && (
+                <button className="admin-mc-wa-btn" style={{ background:'#1a6b3c', color:'#fff', border:'none' }}
+                  onClick={() => generateFamilyPDF(m)} title="Download Family Certificate">
+                  📄 PDF
                 </button>
               )}
               {m.mobile && (
@@ -790,6 +949,93 @@ function EventsTab({ items }) {
           </div>
         ))}
         {items.length === 0 && <div className="admin-empty">No events. Add one above.</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ── Profile Tab ── */
+function ProfileTab() {
+  const { user } = useAuth();
+  const [form, setForm]   = useState({ oldPass:'', newPass:'', confirm:'' });
+  const [msg,   setMsg]   = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault(); setMsg(''); setError('');
+    if (form.newPass !== form.confirm) { setError('New passwords do not match.'); return; }
+    if (form.newPass.length < 6)       { setError('Password must be at least 6 characters.'); return; }
+    setSaving(true);
+    try {
+      const cred = EmailAuthProvider.credential(user.email, form.oldPass);
+      await reauthenticateWithCredential(user, cred);
+      await updatePassword(user, form.newPass);
+      setMsg('✅ Password updated successfully!');
+      setForm({ oldPass:'', newPass:'', confirm:'' });
+    } catch (err) {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('Current password is incorrect.');
+      } else {
+        setError('Failed to update password. Please try again.');
+      }
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="admin-settings-wrap">
+      <div className="admin-settings-section">
+        <h2 className="admin-section-title">👤 Admin Profile</h2>
+        <div style={{ background:'#f8f9fa', border:'1px solid #e0d5c5', borderRadius:14, padding:22, marginBottom:28 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:18, marginBottom:18 }}>
+            <div style={{ width:64, height:64, borderRadius:'50%', background:'linear-gradient(135deg,#1a6b3c,#2d9959)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.9rem', color:'#fff', fontWeight:'bold', flexShrink:0 }}>
+              A
+            </div>
+            <div>
+              <div style={{ fontWeight:'bold', fontSize:'1.1rem' }}>Administrator</div>
+              <div style={{ color:'var(--text-mid)', fontSize:'0.88rem', margin:'2px 0' }}>{user?.email}</div>
+              <div style={{ color:'#1a6b3c', fontSize:'0.78rem', background:'#d1fae5', padding:'2px 10px', borderRadius:99, display:'inline-block' }}>✅ Admin Access Granted</div>
+            </div>
+          </div>
+          <div>
+            {[
+              { label:'Email',   val: user?.email },
+              { label:'Role',    val: 'Administrator' },
+              { label:'Village', val: 'Chinamanapuram' },
+              { label:'Portal',  val: 'chinamanapuram-portal.vercel.app' },
+            ].map(r => (
+              <div key={r.label} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #e0d5c5', fontSize:'0.9rem' }}>
+                <span style={{ color:'var(--text-mid)' }}>{r.label}</span>
+                <span style={{ fontWeight:500 }}>{r.val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="admin-settings-section">
+        <h2 className="admin-section-title">🔐 Change Password</h2>
+        <p className="admin-hint">Logged in as: <strong>{user?.email}</strong></p>
+        {msg   && <div className="admin-msg-ok">{msg}</div>}
+        {error && <div className="admin-msg-err">⚠️ {error}</div>}
+        <form className="admin-settings-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Current Password</label>
+            <input className="form-input" type="password" value={form.oldPass} onChange={e => setForm(f=>({...f,oldPass:e.target.value}))} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">New Password</label>
+            <input className="form-input" type="password" value={form.newPass} onChange={e => setForm(f=>({...f,newPass:e.target.value}))} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Confirm New Password</label>
+            <input className="form-input" type="password" value={form.confirm} onChange={e => setForm(f=>({...f,confirm:e.target.value}))} required />
+          </div>
+          <button className="btn-save" type="submit" disabled={saving}>
+            {saving ? 'Saving…' : '🔐 Update Password'}
+          </button>
+        </form>
       </div>
     </div>
   );
