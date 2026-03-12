@@ -6421,3 +6421,93 @@ html { overflow-x: hidden; }
 }
 .showcase-modal-info-te { font-size: 0.88rem; color: #1a3a2a; line-height: 1.7; margin-bottom: 6px; }
 .showcase-modal-info-en { font-size: 0.8rem; color: #555; line-height: 1.6; font-style: italic; }
+
+/* ═══════════════════════════════════════════════════════════
+   HEALTH STANDALONE PAGE  (/health)
+   ═══════════════════════════════════════════════════════════ */
+.health-page { background: linear-gradient(135deg, #0c1a2e 0%, #1e3a5f 60%, #0f2340 100%); min-height: 100vh; }
+.health-page-hero {
+  padding: 48px 24px 36px;
+  text-align: center;
+}
+.health-page-hero-inner { max-width: 760px; margin: 0 auto; }
+.health-page-title {
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+  font-weight: 900; color: #fff; margin: 10px 0 8px;
+  font-family: 'Noto Sans Telugu', sans-serif;
+}
+.health-page-sub { color: rgba(255,255,255,0.55); font-size: 0.88rem; margin-bottom: 14px; }
+.health-emergency-bar {
+  display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+  padding: 14px 20px; background: rgba(239,68,68,0.08);
+  border-top: 1px solid rgba(239,68,68,0.2);
+  border-bottom: 1px solid rgba(239,68,68,0.2);
+  margin-bottom: 8px;
+}
+.health-emg-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 99px;
+  font-size: 0.82rem; font-weight: 700; text-decoration: none;
+  border: 1.5px solid transparent; transition: opacity 0.18s;
+  white-space: nowrap;
+}
+.health-emg-btn:hover { opacity: 0.82; }
+.health-emg-btn.red    { background: rgba(239,68,68,0.18);  border-color: rgba(239,68,68,0.5);  color: #fca5a5; }
+.health-emg-btn.blue   { background: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.5); color: #93c5fd; }
+.health-emg-btn.green  { background: rgba(34,197,94,0.18);  border-color: rgba(34,197,94,0.5);  color: #86efac; }
+.health-emg-btn.orange { background: rgba(251,146,60,0.18); border-color: rgba(251,146,60,0.5); color: #fdba74; }
+.health-page-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 20px; max-width: 1200px; margin: 0 auto; padding: 20px 24px 48px;
+}
+.health-page-footer {
+  text-align: center; padding: 20px 24px 40px;
+  color: rgba(255,255,255,0.45); font-size: 0.8rem;
+}
+@media (max-width: 1000px) { .health-page-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .health-page-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .health-page-hero { padding: 36px 16px 24px; }
+  .health-emergency-bar { gap: 8px; padding: 12px 14px; }
+  .health-emg-btn { font-size: 0.76rem; padding: 5px 11px; }
+  .health-page-grid { padding: 12px 14px 36px; gap: 14px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE FIXES — global
+   ═══════════════════════════════════════════════════════════ */
+/* Festival & Showcase modals — full width on small screens */
+@media (max-width: 600px) {
+  .fest-modal {
+    max-width: 100vw !important;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+    align-self: flex-end;
+  }
+  .fest-modal-backdrop {
+    align-items: flex-end;
+  }
+  .fest-modal-banner { height: 200px; }
+  .fest-modal-body { padding: 16px; }
+  .fest-modal-pachadi-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Farming page — mobile hero */
+@media (max-width: 480px) {
+  .farming-page-hero { padding: 40px 16px 28px; }
+  .farming-page-hero-title { font-size: 1.5rem; }
+  .farming-page-grid { padding: 0 14px 32px; gap: 14px; }
+  .farming-card { padding: 14px 12px; }
+}
+
+/* Videos page — mobile */
+@media (max-width: 480px) {
+  .vid-controls-inner { flex-direction: column; align-items: stretch; gap: 10px; }
+  .vid-action-btns { display: flex; gap: 8px; }
+  .vid-yt-btn, .vid-upload-btn { flex: 1; font-size: 0.8rem; padding: 9px 10px; }
+}
+
+/* Chat page — bot bubble mobile */
+@media (max-width: 480px) {
+  .msg-bubble-bot { max-width: 100%; font-size: 0.8rem; }
+}
