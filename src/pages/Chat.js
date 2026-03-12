@@ -152,7 +152,26 @@ function MsgBubble({ msg, isMine }) {
     return (
       <div className="msg-row msg-row-bot">
         <div className="msg-av msg-av-bot" style={{ padding:0, overflow:'hidden', background:'transparent' }}>
-          <img src="/bot-avatar.svg" alt="Bot" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }} />
+          <svg viewBox="0 0 80 80" style={{ width:'100%', height:'100%', borderRadius:'50%' }}>
+            <circle cx="40" cy="40" r="40" fill="#1a6b3c"/>
+            <rect x="37" y="6" width="6" height="10" rx="3" fill="#fff" opacity="0.9"/>
+            <circle cx="40" cy="5" r="4" fill="#e8891a"/>
+            <rect x="16" y="16" width="48" height="36" rx="10" fill="#fff" opacity="0.95"/>
+            <rect x="24" y="26" width="12" height="10" rx="3" fill="#1a6b3c"/>
+            <rect x="44" y="26" width="12" height="10" rx="3" fill="#1a6b3c"/>
+            <circle cx="28" cy="29" r="2" fill="#fff" opacity="0.8"/>
+            <circle cx="48" cy="29" r="2" fill="#fff" opacity="0.8"/>
+            <rect x="26" y="40" width="28" height="6" rx="3" fill="#e8891a" opacity="0.9"/>
+            <rect x="28" y="40" width="6" height="4" rx="1" fill="#fff" opacity="0.7"/>
+            <rect x="37" y="40" width="6" height="4" rx="1" fill="#fff" opacity="0.7"/>
+            <rect x="46" y="40" width="6" height="4" rx="1" fill="#fff" opacity="0.7"/>
+            <rect x="22" y="55" width="36" height="18" rx="8" fill="#fff" opacity="0.9"/>
+            <circle cx="32" cy="64" r="3" fill="#1a6b3c" opacity="0.6"/>
+            <circle cx="40" cy="64" r="3" fill="#e8891a" opacity="0.8"/>
+            <circle cx="48" cy="64" r="3" fill="#1a6b3c" opacity="0.6"/>
+            <rect x="8" y="56" width="12" height="6" rx="3" fill="#fff" opacity="0.8"/>
+            <rect x="60" y="56" width="12" height="6" rx="3" fill="#fff" opacity="0.8"/>
+          </svg>
         </div>
         <div className="msg-col">
           <div className="msg-sender msg-sender-bot">{msg.user}</div>

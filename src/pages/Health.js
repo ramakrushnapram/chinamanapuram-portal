@@ -120,6 +120,7 @@ const DEFAULT_HEALTH_GUIDE = [
 
 export default function Health() {
   const [guide, setGuide] = useState(DEFAULT_HEALTH_GUIDE);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -158,10 +159,11 @@ export default function Health() {
           <span className="health-emg-btn orange">🏨 Dist. Hospital Vizianagaram · 0892-2XXXXXX</span>
         </div>
 
-        {/* Cards grid */}
+        {/* Cards grid — click to open popup */}
         <div className="health-page-grid">
           {guide.map((item, i) => (
-            <div key={i} className="health-card" style={{ '--hc': item.color }}>
+            <div key={i} className="health-card" style={{ '--hc': item.color, cursor:'pointer' }}
+              onClick={() => setSelected(item)}>
               <div className="hc-top">
                 <span className="hc-icon">{item.icon}</span>
                 <h3 className="hc-title">{item.title}</h3>
@@ -171,23 +173,10 @@ export default function Health() {
                 <div className="hc-block-te">{item.symptoms_te}</div>
                 <div className="hc-block-en">{item.symptoms_en}</div>
               </div>
-              <div className="hc-block hc-home">
-                <div className="hc-block-label">🌿 ఇంటి చికిత్స / Home Remedy</div>
-                <div className="hc-block-te">{item.home_te}</div>
-                <div className="hc-block-en">{item.home_en}</div>
-              </div>
-              <div className="hc-block hc-tablet">
-                <div className="hc-block-label">💊 మాత్రలు / Tablets</div>
-                <div className="hc-tablet-name">{item.tablet}</div>
-                <div className="hc-block-te">{item.dose_te}</div>
-                <div className="hc-block-en">{item.dose_en}</div>
-              </div>
-              <div className="hc-block hc-side">
-                <div className="hc-block-label">⚠️ జాగ్రత్తలు / Caution</div>
-                <div className="hc-block-te">{item.side_te}</div>
-                <div className="hc-block-en">{item.side_en}</div>
-              </div>
               <div className="hc-danger">{item.danger}</div>
+              <div style={{ textAlign:'center', marginTop:10, fontSize:'0.82rem', color:'var(--primary)', fontWeight:700 }}>
+                👆 Tap for full details
+              </div>
             </div>
           ))}
         </div>
@@ -198,6 +187,72 @@ export default function Health() {
           <p style={{marginTop:6, opacity:0.7}}>This information is for general awareness only. For serious illness, always visit a qualified doctor or PHC.</p>
         </div>
       </div>
+
+      {/* ── Detail Popup Modal ── */}
+      {selected && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+          onClick={() => setSelected(null)}>
+          <div style={{ background:'#fff', borderRadius:18, maxWidth:520, width:'100%', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.4)' }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* Modal header */}
+            <div style={{ background:`linear-gradient(135deg, ${selected.color}22, ${selected.color}44)`, borderRadius:'18px 18px 0 0', padding:'20px 24px 16px', borderBottom:`3px solid ${selected.color}` }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <span style={{ fontSize:'2.5rem' }}>{selected.icon}</span>
+                  <h2 style={{ margin:0, color:'#1a1a1a', fontSize:'1.2rem', fontWeight:800 }}>{selected.title}</h2>
+                </div>
+                <button onClick={() => setSelected(null)}
+                  style={{ background:'rgba(0,0,0,0.1)', border:'none', borderRadius:'50%', width:34, height:34, fontSize:'1.1rem', cursor:'pointer', fontWeight:700 }}>✕</button>
+              </div>
+            </div>
+
+            {/* Modal content */}
+            <div style={{ padding:'20px 24px' }}>
+
+              <div style={{ background:'#f0fdf4', borderRadius:12, padding:'12px 16px', marginBottom:16, borderLeft:`4px solid ${selected.color}` }}>
+                <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#555', marginBottom:6 }}>🔍 లక్షణాలు / SYMPTOMS</div>
+                <div style={{ fontSize:'0.9rem', color:'#333', marginBottom:4 }}>{selected.symptoms_te}</div>
+                <div style={{ fontSize:'0.85rem', color:'#555' }}>{selected.symptoms_en}</div>
+              </div>
+
+              <div style={{ background:'#f0fdf4', borderRadius:12, padding:'12px 16px', marginBottom:16, borderLeft:'4px solid #16a34a' }}>
+                <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#555', marginBottom:6 }}>🌿 ఇంటి చికిత్స / HOME REMEDY</div>
+                <div style={{ fontSize:'0.9rem', color:'#333', marginBottom:4 }}>{selected.home_te}</div>
+                <div style={{ fontSize:'0.85rem', color:'#555' }}>{selected.home_en}</div>
+              </div>
+
+              <div style={{ background:'#eff6ff', borderRadius:12, padding:'12px 16px', marginBottom:16, borderLeft:'4px solid #3b82f6' }}>
+                <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#555', marginBottom:6 }}>💊 మాత్రలు / TABLETS</div>
+                <div style={{ fontSize:'1rem', fontWeight:800, color:'#1e3a8a', marginBottom:6 }}>{selected.tablet}</div>
+                <div style={{ fontSize:'0.88rem', color:'#333', marginBottom:4 }}>{selected.dose_te}</div>
+                <div style={{ fontSize:'0.84rem', color:'#555' }}>{selected.dose_en}</div>
+              </div>
+
+              <div style={{ background:'#fffbeb', borderRadius:12, padding:'12px 16px', marginBottom:16, borderLeft:'4px solid #f59e0b' }}>
+                <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#555', marginBottom:6 }}>⚠️ జాగ్రత్తలు / CAUTION</div>
+                <div style={{ fontSize:'0.88rem', color:'#333', marginBottom:4 }}>{selected.side_te}</div>
+                <div style={{ fontSize:'0.84rem', color:'#555' }}>{selected.side_en}</div>
+              </div>
+
+              <div style={{ background:'#fef2f2', borderRadius:12, padding:'12px 16px', borderLeft:'4px solid #ef4444' }}>
+                <div style={{ fontSize:'0.75rem', fontWeight:700, color:'#dc2626', marginBottom:4 }}>🚨 అత్యవసర పరిస్థితి / EMERGENCY</div>
+                <div style={{ fontSize:'0.88rem', color:'#991b1b', fontWeight:600 }}>{selected.danger}</div>
+              </div>
+
+              <div style={{ display:'flex', gap:10, marginTop:18 }}>
+                <a href="tel:108" style={{ flex:1, background:'#dc2626', color:'#fff', border:'none', borderRadius:10, padding:'11px 0', textAlign:'center', fontWeight:700, fontSize:'0.9rem', textDecoration:'none' }}>
+                  🚑 Call 108
+                </a>
+                <button onClick={() => setSelected(null)}
+                  style={{ flex:1, background:'#1a6b3c', color:'#fff', border:'none', borderRadius:10, padding:'11px 0', fontWeight:700, fontSize:'0.9rem', cursor:'pointer' }}>
+                  ✓ Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
