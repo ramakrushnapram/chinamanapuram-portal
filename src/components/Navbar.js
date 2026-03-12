@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { to: '/videos',     label: 'Videos',      icon: '🎬' },
   { to: '/health',     label: 'Health',      icon: '🏥' },
   { to: '/farming',   label: 'Farming',     icon: '🌾' },
+  { to: '/calendar',  label: 'Calendar',    icon: '📅' },
 ];
 
 const DEFAULT_TICKER = [

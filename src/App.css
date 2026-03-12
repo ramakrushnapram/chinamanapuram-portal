@@ -6507,6 +6507,27 @@ html { overflow-x: hidden; }
   .vid-yt-btn, .vid-upload-btn { flex: 1; font-size: 0.8rem; padding: 9px 10px; }
 }
 
+/* ─── Calendar page layout ─── */
+.cal-layout {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+}
+@media (max-width: 860px) {
+  .cal-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .cal-layout {
+    padding: 12px 8px;
+    gap: 14px;
+  }
+}
+
 /* Chat page — bot bubble mobile */
 @media (max-width: 480px) {
   .msg-bubble-bot { max-width: 100%; font-size: 0.8rem; }

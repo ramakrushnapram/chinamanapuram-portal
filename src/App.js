@@ -15,6 +15,7 @@ import Documents      from './pages/Documents';
 import Videos        from './pages/Videos';
 import Health        from './pages/Health';
 import Farming       from './pages/Farming';
+import Calendar      from './pages/Calendar';
 import './App.css';
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Route path="/videos"     element={<Videos />} />
           <Route path="/health"     element={<Health />} />
           <Route path="/farming"    element={<Farming />} />
+          <Route path="/calendar"   element={<Calendar />} />
         </Routes>
       </AuthProvider>
     </Router>
