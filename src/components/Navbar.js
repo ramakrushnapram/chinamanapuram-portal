@@ -96,21 +96,49 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="navbar-inner">
 
-          {/* Brand */}
+          {/* Brand / Logo */}
           <Link to="/" className="navbar-brand" onClick={() => setOpen(false)}>
-            <span className="navbar-brand-icon">🏘️</span>
-            <span className="navbar-brand-text">Chinamanapuram</span>
+            <div className="navbar-brand-logo">
+              <svg viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Sky */}
+                <rect width="46" height="46" rx="10" fill="#0f3320"/>
+                {/* Sun */}
+                <circle cx="23" cy="14" r="5" fill="#f5d06a" opacity="0.95"/>
+                <circle cx="23" cy="14" r="7" fill="none" stroke="#f5d06a" strokeWidth="1" opacity="0.4"/>
+                {/* Mountains / Hills */}
+                <path d="M0 34 L10 22 L18 30 L23 24 L30 33 L38 20 L46 30 L46 46 L0 46Z" fill="#1a6b3c"/>
+                <path d="M0 38 L8 30 L15 36 L22 28 L29 36 L36 28 L46 36 L46 46 L0 46Z" fill="#2d9959"/>
+                {/* House */}
+                <path d="M18 38 L18 32 L23 28 L28 32 L28 38Z" fill="#e8891a"/>
+                <path d="M16 32 L23 26 L30 32Z" fill="#c46e0e"/>
+                <rect x="21" y="34" width="4" height="4" rx="1" fill="#071a0e"/>
+                {/* Trees */}
+                <ellipse cx="12" cy="35" rx="3" ry="4" fill="#1a4a28"/>
+                <rect x="11.5" y="38" width="1" height="2" fill="#8B5E3C"/>
+                <ellipse cx="34" cy="35" rx="3" ry="4" fill="#1a4a28"/>
+                <rect x="33.5" y="38" width="1" height="2" fill="#8B5E3C"/>
+                {/* Stars */}
+                <circle cx="8" cy="10" r="1" fill="#f5d06a" opacity="0.7"/>
+                <circle cx="38" cy="8" r="1" fill="#f5d06a" opacity="0.6"/>
+                <circle cx="32" cy="13" r="0.7" fill="#f5d06a" opacity="0.5"/>
+              </svg>
+            </div>
+            <div className="navbar-brand-text-wrap">
+              <span className="navbar-brand-text">Chinamanapuram</span>
+              <span className="navbar-brand-sub">Gram Panchayat</span>
+            </div>
           </Link>
 
-          {/* Desktop nav links */}
+          {/* Nav links dropdown */}
           <ul className={`navbar-links${open ? ' open' : ''}`}>
+            <div className="navbar-links-grid">
             {NAV_LINKS.map(l => (
               <li key={l.to}>
                 <NavLink to={l.to} end={l.end || false} onClick={() => setOpen(false)}>
                   {l.icon} {l.label}
                 </NavLink>
               </li>
-            ))}
+            ))}</div>
 
             {/* Mobile-only auth section (shown inside hamburger menu) */}
             <li className="navbar-mobile-auth">

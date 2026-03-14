@@ -59,77 +59,108 @@ function YouTubeModal({ user, onClose, onAdded }) {
       onAdded();
       onClose();
     } catch (err) {
-      setError(err.message);
+      if (err.code === 'permission-denied' || (err.message && err.message.includes('permission'))) {
+        setError('❌ Permission denied. Please make sure you are logged in with Chrome browser (not Edge). Edge blocks Firebase login.');
+      } else {
+        setError('Failed to save. Please try again.');
+      }
       setSaving(false);
     }
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">▶️ Add YouTube Video</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-        <form className="modal-body" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'#fff', borderRadius:20, width:'100%', maxWidth:500,
+        boxShadow:'0 20px 60px rgba(0,0,0,0.3)', overflow:'hidden',
+        margin:'20px auto',
+      }}>
+        {/* Header */}
+        <div style={{ background:'linear-gradient(135deg, #dc2626, #b91c1c)', padding:'18px 24px', display:'flex', alignItems:'center', gap:14 }}>
+          <div style={{ width:44, height:44, background:'rgba(255,255,255,0.15)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.4rem' }}>▶️</div>
           <div>
-            <label className="form-label">YouTube Link *</label>
+            <h2 style={{ color:'#fff', margin:0, fontSize:'1.1rem', fontWeight:800 }}>Add YouTube Video</h2>
+            <p style={{ color:'rgba(255,255,255,0.7)', margin:0, fontSize:'0.78rem' }}>Share a village video with the community</p>
+          </div>
+          <button onClick={onClose} style={{ marginLeft:'auto', background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:32, height:32, color:'#fff', cursor:'pointer', fontSize:'1.1rem', fontWeight:700 }}>✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* YouTube URL */}
+          <div>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#374151', marginBottom:6 }}>🔗 YouTube Link *</label>
             <input
-              className="form-input"
+              style={{ width:'100%', border:'1.5px solid #e5e7eb', borderRadius:10, padding:'10px 14px', fontSize:'0.9rem', outline:'none', boxSizing:'border-box', transition:'border-color 0.2s' }}
               placeholder="https://www.youtube.com/watch?v=..."
               value={url}
               onChange={e => setUrl(e.target.value)}
               disabled={saving}
+              onFocus={e => e.target.style.borderColor='#dc2626'}
+              onBlur={e => e.target.style.borderColor='#e5e7eb'}
             />
           </div>
 
-          {/* Live preview thumbnail */}
+          {/* Live preview */}
           {previewId && (
-            <div className="yt-modal-preview">
-              <img
-                src={`https://img.youtube.com/vi/${previewId}/hqdefault.jpg`}
-                alt="YouTube thumbnail"
-                className="yt-modal-thumb"
-              />
-              <div className="yt-modal-preview-label">✅ Valid YouTube video detected</div>
+            <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:12, padding:'10px 14px', display:'flex', alignItems:'center', gap:12 }}>
+              <img src={`https://img.youtube.com/vi/${previewId}/default.jpg`} alt="" style={{ width:80, height:60, borderRadius:8, objectFit:'cover' }} />
+              <div>
+                <div style={{ color:'#166534', fontWeight:700, fontSize:'0.85rem' }}>✅ Valid YouTube video detected</div>
+                <div style={{ color:'#15803d', fontSize:'0.75rem', marginTop:2 }}>Thumbnail loaded successfully</div>
+              </div>
             </div>
           )}
 
+          {/* Title */}
           <div>
-            <label className="form-label">Title *</label>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#374151', marginBottom:6 }}>📝 Title *</label>
             <input
-              className="form-input"
+              style={{ width:'100%', border:'1.5px solid #e5e7eb', borderRadius:10, padding:'10px 14px', fontSize:'0.9rem', outline:'none', boxSizing:'border-box' }}
               placeholder="E.g. Ugadi Celebrations 2026"
               value={title}
               onChange={e => setTitle(e.target.value)}
               disabled={saving}
             />
           </div>
+
+          {/* Category */}
           <div>
-            <label className="form-label">Category</label>
-            <select className="form-input" value={category} onChange={e => setCategory(e.target.value)} disabled={saving}>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#374151', marginBottom:6 }}>📁 Category</label>
+            <select
+              style={{ width:'100%', border:'1.5px solid #e5e7eb', borderRadius:10, padding:'10px 14px', fontSize:'0.9rem', outline:'none', background:'#fff', boxSizing:'border-box' }}
+              value={category} onChange={e => setCategory(e.target.value)} disabled={saving}>
               {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
+
+          {/* Description */}
           <div>
-            <label className="form-label">Description</label>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#374151', marginBottom:6 }}>💬 Description <span style={{ fontWeight:400, color:'#9ca3af' }}>(optional)</span></label>
             <textarea
-              className="form-input"
-              rows={3}
-              placeholder="Brief description..."
+              style={{ width:'100%', border:'1.5px solid #e5e7eb', borderRadius:10, padding:'10px 14px', fontSize:'0.88rem', outline:'none', resize:'vertical', minHeight:70, boxSizing:'border-box', fontFamily:'inherit' }}
+              placeholder="Describe the video briefly..."
               value={desc}
               onChange={e => setDesc(e.target.value)}
               disabled={saving}
-              style={{ resize: 'vertical' }}
+              rows={2}
             />
           </div>
 
-          {error && <div className="form-error">{error}</div>}
+          {error && (
+            <div style={{ background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:10, padding:'10px 14px', color:'#dc2626', fontSize:'0.84rem' }}>
+              {error}
+            </div>
+          )}
 
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" className="btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-            <button type="submit" className="btn-save" disabled={saving}>
-              {saving ? 'Saving…' : '▶️ Add Video'}
+          <div style={{ display:'flex', gap:10 }}>
+            <button type="button" onClick={onClose} disabled={saving}
+              style={{ flex:1, padding:'11px', border:'1.5px solid #e5e7eb', borderRadius:10, background:'#fff', color:'#374151', fontWeight:600, cursor:'pointer', fontSize:'0.9rem' }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={saving || !previewId || !title.trim()}
+              style={{ flex:2, padding:'11px', border:'none', borderRadius:10, background: saving ? '#9ca3af' : 'linear-gradient(135deg, #dc2626, #b91c1c)', color:'#fff', fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer', fontSize:'0.9rem' }}>
+              {saving ? '⏳ Saving…' : '▶️ Add Video'}
             </button>
           </div>
         </form>

@@ -153,96 +153,157 @@ html { overflow-x: hidden; }
 .navbar {
   position: relative;
   z-index: 101;
-  background: rgba(15, 71, 38, 0.97);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(135deg, #071a0e 0%, #0f3320 40%, #1a5c32 80%, #0f3320 100%);
   border-bottom: 2px solid var(--accent);
-  box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.05) inset;
 }
 
 .navbar-inner {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
+  height: 68px;
+  gap: 16px;
 }
 
+/* ── Brand / Logo ── */
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
   color: var(--white);
+  flex-shrink: 0;
 }
 
-.navbar-brand-icon {
-  font-size: 1.6rem;
-  line-height: 1;
+.navbar-brand-logo {
+  width: 46px;
+  height: 46px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.navbar-brand-text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
 }
 
 .navbar-brand-text {
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: var(--accent-light);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #f5d06a, #e8891a, #f5d06a);
+  background-size: 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
 }
 
+.navbar-brand-sub {
+  font-size: 0.63rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 0% }
+  100% { background-position: 200% }
+}
+
+/* ── Dropdown menu ── */
 .navbar-links {
-  display: none;
+  display: grid;
+  grid-template-rows: 0fr;
   position: absolute;
-  top: 66px;
+  top: 68px;
   left: 0;
   right: 0;
-  background: var(--primary-dark);
-  flex-direction: column;
-  padding: 10px 16px 16px;
-  gap: 2px;
+  background: linear-gradient(180deg, #0a2415 0%, #071a0e 100%);
   border-bottom: 2px solid var(--accent);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
   z-index: 200;
-  max-height: calc(100vh - 150px);
-  overflow-y: auto;
   list-style: none;
-  align-items: stretch;
+  overflow: hidden;
+  transition: grid-template-rows 0.3s ease, padding 0.3s ease;
+  padding: 0 16px;
 }
-.navbar-links.open { display: flex; }
-.navbar-links a { padding: 11px 16px; border-radius: 8px; font-size: 0.92rem; }
+.navbar-links > * { min-height: 0; overflow: hidden; }
+.navbar-links.open {
+  grid-template-rows: 1fr;
+  padding: 8px 16px 14px;
+}
+
+/* Grid layout for nav items inside dropdown */
+.navbar-links li { display: block; }
+.navbar-links-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .navbar-links-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 400px) {
+  .navbar-links-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 .navbar-links a {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 7px 10px;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
   text-decoration: none;
-  color: rgba(255,255,255,0.85);
-  font-size: 0.82rem;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.88rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
-.navbar-links a:hover,
-.navbar-links a.active {
-  background: rgba(232, 137, 26, 0.18);
+.navbar-links a:hover {
+  background: rgba(232, 137, 26, 0.15);
   color: var(--accent-light);
+  border-color: rgba(232,137,26,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
+.navbar-links a.active {
+  background: linear-gradient(135deg, rgba(232,137,26,0.25), rgba(232,137,26,0.1));
+  color: #f5d06a;
+  border-color: rgba(232,137,26,0.4);
+  font-weight: 700;
+}
+
+/* ── Hamburger ── */
 .hamburger {
   display: flex;
   flex-direction: column;
   gap: 5px;
   cursor: pointer;
-  padding: 4px;
-  background: none;
-  border: none;
+  padding: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.hamburger:hover {
+  background: rgba(232,137,26,0.15);
+  border-color: rgba(232,137,26,0.4);
 }
 
 .hamburger span {
   display: block;
-  width: 24px;
+  width: 22px;
   height: 2px;
   background: var(--white);
   border-radius: 2px;
