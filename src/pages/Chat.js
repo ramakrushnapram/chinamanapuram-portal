@@ -308,28 +308,6 @@ function ChatInner({ displayName }) {
         text,
         createdAt: serverTimestamp(),
       });
-      // Bot reply — local only, no Firestore write needed
-      const botReply = getBotReply(text);
-      if (botReply) {
-        setTimeout(() => {
-          const now = new Date();
-          setMessages(prev => ({
-            ...prev,
-            [activeChannel]: [
-              ...prev[activeChannel],
-              {
-                id:      `bot-${Date.now()}`,
-                user:    BOT_NAME,
-                av:      BOT_AV,
-                text:    botReply,
-                isBot:   true,
-                sortKey: Date.now() / 1000 + 1,
-                time:    now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-              },
-            ],
-          }));
-        }, 700);
-      }
     } catch (e) {
       console.error('Send failed:', e);
     } finally {

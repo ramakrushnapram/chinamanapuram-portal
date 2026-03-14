@@ -2293,16 +2293,18 @@ html { overflow-x: hidden; }
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 /* The shell below Navbar = full remaining height */
+/* 48px gov-topbar + 64px navbar + 36px ticker = 148px */
 .chat-shell {
   display: flex;
   flex: 1;
   overflow: hidden;
-  /* account for navbar (64px) + ticker (36px) */
-  height: calc(100vh - 64px - var(--ticker-h));
+  height: calc(100vh - 148px);
+  height: calc(100dvh - 148px);
 }
 
 /* ── Sidebar ── */

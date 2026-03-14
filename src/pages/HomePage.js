@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { db } from '../firebase';
@@ -337,6 +337,53 @@ function weatherInfo(code) {
   return                                    { icon:'🌤️', label:'Partly Cloudy'   };
 }
 
+/* ─── Village Helper Bot Rules ─── */
+const BOT_RULES = [
+  { keys:['hello','hi','hey','నమస్కారం','namaste','helo','హలో'], reply:'🙏 నమస్కారం! Hello!\n\nNenu Village Helper Bot. Ask me about:\n• 🏥 Health / ఆరోగ్యం\n• 🌾 Farming / వ్యవసాయం\n• 🚨 Emergency numbers\n• 🎉 Festival info\n• 🏘️ Village info\n\nType in Telugu or English!' },
+  { keys:['జ్వరం','fever','temperature','temp'], reply:'🌡️ Fever / జ్వరం:\n\n🏠 Home Remedy: Cold wet cloth on forehead. Drink coconut water.\n💊 Tablet: Paracetamol 500mg – 3 times a day\n⚠️ If no relief in 2 days → see doctor\n📞 108 Ambulance (Free)\n👉 Visit /health for full guide' },
+  { keys:['దగ్గు','cough','జలుబు','cold'], reply:'🤧 Cold & Cough / జలుబు దగ్గు:\n\n🏠 Remedy: Tulsi + ginger + pepper tea. Turmeric milk at night.\n💊 Tablet: Cetirizine 10mg at bedtime\n⚠️ If not better in 1 week → doctor\n👉 Visit /health for details' },
+  { keys:['కడుపు','stomach','vomit','వాంతి','diarrhea','loose'], reply:'🤢 Stomach / కడుపు నొప్పి:\n\n🏠 Remedy: ORS water. Plain rice + curd. Avoid oily food.\n💊 Tablet: ORS / Ondansetron\n⚠️ Blood in stool → call 108 immediately\n👉 Visit /health' },
+  { keys:['తలనొప్పి','headache'], reply:'🤕 Headache / తలనొప్పి:\n\n🏠 Remedy: Rest in dark room. Drink more water.\n💊 Tablet: Paracetamol 500mg\n⚠️ Severe headache + vomiting → call 108\n👉 Visit /health' },
+  { keys:['వ్యవసాయం','farming','crop','పంట','రైతు'], reply:'🌾 Farming / వ్యవసాయం:\n\nOrganic tips for Chinamanapuram farmers:\n• 🌱 Jeevamrutham (జీవామృతం)\n• 🐄 Panchagavya\n• 🍃 Neem Spray (వేప పిచికారీ)\n• 🪱 Vermicompost\n\n👉 Visit /farming for all 6 tips with recipes!' },
+  { keys:['108','ambulance','అంబులెన్స్'], reply:'🚑 108 Ambulance — FREE 24×7\n\n📞 108 — Emergency ambulance\n📞 104 — Mobile Health Van\n🏥 PHC Gantyada: 0894-2XXXXXX\n\nFree for everyone! ఉచితం!' },
+  { keys:['emergency','అత్యవసరం','urgent','help'], reply:'🚨 Emergency Numbers:\n\n🚑 108 — Ambulance\n🚒 101 — Fire\n👮 100 — Police\n📞 104 — Health Van\n\nCall immediately in any emergency!' },
+  { keys:['సర్పంచ్','sarpanch','panchayat'], reply:'🏘️ Sarpanch:\n\n👤 Smt. Pasala Venkata Parvathi\n🏢 Panchayat Office, Chinamanapuram\n⏰ Mon–Sat: 10 AM – 5 PM' },
+  { keys:['scholarship','స్కాలర్షిప్','education','విద్య'], reply:'📚 Scholarships:\n\nClass 10 students can apply!\n📅 Last date: 31 March 2026\n🏢 Apply at Panchayat office\n📋 Bring: Mark sheet, Aadhaar, Passbook\n👉 Visit /education for more info' },
+  { keys:['ugadi','ఉగాది','festival'], reply:'🎉 Ugadi – March 19, 2026\n\n📍 Panchayat Grounds, Chinamanapuram\n⏰ 6 AM – Ugadi Pachadi\n⏰ 5 PM – Cultural programs & prizes\n\nAll families welcome! అందరికీ ఆహ్వానం!' },
+  { keys:['thanks','thank you','ధన్యవాదాలు'], reply:'🙏 ధన్యవాదాలు! Thank you!\nHappy to help Chinamanapuram community!\nFeel free to ask anything anytime! 🏘️' },
+];
+
+function getBotReply(text) {
+  const lower = text.toLowerCase();
+  for (const rule of BOT_RULES) {
+    if (rule.keys.some(k => lower.includes(k))) return rule.reply;
+  }
+  if (text.trim().length > 3) {
+    return '🤔 I did not understand that.\n\nAsk about:\n• Health → type "fever"\n• Farming → type "farming"\n• Emergency → type "108"\n• Festival → type "ugadi"\n• Education → type "scholarship"';
+  }
+  return null;
+}
+
+const RobotSVG = () => (
+  <svg viewBox="0 0 80 80" style={{ width:'100%', height:'100%' }}>
+    <circle cx="40" cy="40" r="40" fill="#1a6b3c"/>
+    <rect x="37" y="6" width="6" height="10" rx="3" fill="#fff" opacity="0.9"/>
+    <circle cx="40" cy="5" r="4" fill="#e8891a"/>
+    <rect x="16" y="16" width="48" height="36" rx="10" fill="#fff" opacity="0.95"/>
+    <rect x="24" y="26" width="12" height="10" rx="3" fill="#1a6b3c"/>
+    <rect x="44" y="26" width="12" height="10" rx="3" fill="#1a6b3c"/>
+    <circle cx="28" cy="29" r="2" fill="#fff" opacity="0.8"/>
+    <circle cx="48" cy="29" r="2" fill="#fff" opacity="0.8"/>
+    <rect x="26" y="40" width="28" height="6" rx="3" fill="#e8891a" opacity="0.9"/>
+    <rect x="22" y="55" width="36" height="18" rx="8" fill="#fff" opacity="0.9"/>
+    <circle cx="32" cy="64" r="3" fill="#1a6b3c" opacity="0.6"/>
+    <circle cx="40" cy="64" r="3" fill="#e8891a" opacity="0.8"/>
+    <circle cx="48" cy="64" r="3" fill="#1a6b3c" opacity="0.6"/>
+    <rect x="8" y="56" width="12" height="6" rx="3" fill="#fff" opacity="0.8"/>
+    <rect x="60" y="56" width="12" height="6" rx="3" fill="#fff" opacity="0.8"/>
+  </svg>
+);
+
 export default function HomePage() {
   const [announcements,  setAnnouncements]  = useState([]);
   const [festivalModal,  setFestivalModal]  = useState(null);
@@ -345,6 +392,11 @@ export default function HomePage() {
   const [weatherLoading,setWeatherLoading]= useState(true);
   const [statsReady,    setStatsReady]    = useState(false);
   const [liveFamilies,  setLiveFamilies]  = useState(0);
+  /* Bot widget state */
+  const [botOpen,    setBotOpen]    = useState(false);
+  const [botMsgs,    setBotMsgs]    = useState([{ id:0, from:'bot', text:'🙏 నమస్కారం! Hello! I am Village Helper Bot.\n\nAsk me about health, farming, emergency numbers, festivals, or village info!\n\nType in Telugu or English 🇮🇳' }]);
+  const [botInput,   setBotInput]   = useState('');
+  const botBottomRef = useRef(null);
   const [livePopulation,setLivePopulation]= useState(0);
   const [liveMembers,   setLiveMembers]   = useState(0);
 
@@ -409,6 +461,23 @@ export default function HomePage() {
     } catch (_) {}
   }, []);
 
+  useEffect(() => {
+    botBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [botMsgs, botOpen]);
+
+  function sendBotMsg() {
+    const text = botInput.trim();
+    if (!text) return;
+    const userMsg = { id: Date.now(), from: 'user', text };
+    setBotMsgs(prev => [...prev, userMsg]);
+    setBotInput('');
+    const reply = getBotReply(text);
+    if (reply) {
+      setTimeout(() => {
+        setBotMsgs(prev => [...prev, { id: Date.now() + 1, from: 'bot', text: reply }]);
+      }, 500);
+    }
+  }
 
   return (
     <div className="homepage">
@@ -820,6 +889,70 @@ export default function HomePage() {
           VILLAGE STATISTICS GRAPH
       ══════════════════════════════════════ */}
       <VillageGraph liveFamilies={liveFamilies} livePopulation={livePopulation} />
+
+      {/* ══════════════════════════════════════
+          FLOATING BOT WIDGET
+      ══════════════════════════════════════ */}
+      <div style={{ position:'fixed', bottom:24, right:20, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:12 }}>
+        {/* Chat panel */}
+        {botOpen && (
+          <div style={{ width:320, maxWidth:'calc(100vw - 40px)', background:'#fff', borderRadius:18, boxShadow:'0 8px 40px rgba(0,0,0,0.25)', display:'flex', flexDirection:'column', overflow:'hidden', maxHeight:'70vh' }}>
+            {/* Header */}
+            <div style={{ background:'linear-gradient(135deg, #1a6b3c, #2d9959)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:36, height:36, borderRadius:'50%', overflow:'hidden', flexShrink:0 }}>
+                <RobotSVG />
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ color:'#fff', fontWeight:800, fontSize:'0.9rem' }}>Village Helper Bot</div>
+                <div style={{ color:'rgba(255,255,255,0.7)', fontSize:'0.72rem' }}>Telugu + English · Ask anything</div>
+              </div>
+              <button onClick={() => setBotOpen(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:28, height:28, color:'#fff', cursor:'pointer', fontSize:'1rem', fontWeight:700 }}>✕</button>
+            </div>
+            {/* Messages */}
+            <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, minHeight:200, maxHeight:320 }}>
+              {botMsgs.map(msg => (
+                <div key={msg.id} style={{ display:'flex', gap:8, alignItems:'flex-start', flexDirection: msg.from==='user' ? 'row-reverse' : 'row' }}>
+                  {msg.from === 'bot' && (
+                    <div style={{ width:28, height:28, borderRadius:'50%', overflow:'hidden', flexShrink:0 }}>
+                      <RobotSVG />
+                    </div>
+                  )}
+                  <div style={{
+                    background: msg.from==='user' ? '#1a6b3c' : '#f3f4f6',
+                    color: msg.from==='user' ? '#fff' : '#1a1a1a',
+                    borderRadius: msg.from==='user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                    padding:'8px 12px', fontSize:'0.82rem', lineHeight:1.5,
+                    maxWidth:'80%', whiteSpace:'pre-wrap',
+                  }}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={botBottomRef} />
+            </div>
+            {/* Input */}
+            <div style={{ padding:'10px 12px', borderTop:'1px solid #e5e7eb', display:'flex', gap:8 }}>
+              <input
+                value={botInput}
+                onChange={e => setBotInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendBotMsg()}
+                placeholder="Ask in Telugu or English…"
+                style={{ flex:1, border:'1.5px solid #e5e7eb', borderRadius:10, padding:'8px 12px', fontSize:'0.83rem', outline:'none' }}
+              />
+              <button onClick={sendBotMsg} disabled={!botInput.trim()}
+                style={{ background:'#1a6b3c', color:'#fff', border:'none', borderRadius:10, padding:'8px 14px', fontWeight:700, cursor:'pointer', fontSize:'1rem' }}>
+                ➤
+              </button>
+            </div>
+          </div>
+        )}
+        {/* Floating button */}
+        <button onClick={() => setBotOpen(o => !o)}
+          style={{ width:58, height:58, borderRadius:'50%', border:'3px solid #fff', boxShadow:'0 4px 20px rgba(0,0,0,0.3)', cursor:'pointer', padding:0, overflow:'hidden', background:'#1a6b3c' }}
+          title="Village Helper Bot">
+          <RobotSVG />
+        </button>
+      </div>
 
       {/* ══════════════════════════════════════
           FOOTER
