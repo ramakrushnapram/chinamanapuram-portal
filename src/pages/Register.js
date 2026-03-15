@@ -321,8 +321,9 @@ function EmailRegister({ onSuccess }) {
       case 'auth/popup-closed-by-user':    return '';
       case 'auth/popup-blocked':           return 'Popup was blocked. Please allow popups and try again.';
       case 'auth/cancelled-popup-request': return '';
-      case 'auth/unauthorized-domain':     return 'Google sign-in is not enabled for this domain yet. Please use email & password registration.';
-      default: return 'Google sign-up failed. Please use email & password registration instead.';
+      case 'auth/unauthorized-domain':     return '🔒 Google sign-in is not configured for this domain. Please use 📱 Mobile + PIN registration.';
+      case 'auth/operation-not-allowed':   return '🔒 Google sign-in is not enabled. Please use 📱 Mobile + PIN registration.';
+      default: return '🔒 Google sign-up is currently unavailable. Please use 📱 Mobile + PIN registration instead.';
     }
   }
 

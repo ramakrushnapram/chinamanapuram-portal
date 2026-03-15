@@ -57,10 +57,11 @@ export default function Login() {
   function friendlyGoogleError(code) {
     switch (code) {
       case 'auth/popup-closed-by-user':    return '';
-      case 'auth/popup-blocked':           return 'Popup was blocked. Please allow popups and try again.';
-      case 'auth/unauthorized-domain':     return 'Google sign-in not enabled for this domain. Use Mobile + PIN instead.';
+      case 'auth/popup-blocked':           return 'Popup was blocked by your browser. Please allow popups for this site and try again.';
+      case 'auth/unauthorized-domain':     return '🔒 Google sign-in is not configured for this domain yet. Please use 📱 Mobile + PIN to login.';
       case 'auth/cancelled-popup-request': return '';
-      default: return 'Google sign-in failed. Please use Mobile + PIN instead.';
+      case 'auth/operation-not-allowed':   return '🔒 Google sign-in is not enabled. Please use 📱 Mobile + PIN to login.';
+      default: return '🔒 Google sign-in is currently unavailable. Please use 📱 Mobile + PIN to login instead.';
     }
   }
 

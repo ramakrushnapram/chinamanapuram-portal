@@ -416,6 +416,7 @@ export default function Videos() {
 
   const [videos,         setVideos]         = useState([]);
   const [loading,        setLoading]        = useState(true);
+  const [dbError,        setDbError]        = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeTab,      setActiveTab]      = useState('all'); // 'all' | 'youtube' | 'uploaded'
   const [showUpload,     setShowUpload]     = useState(false);
@@ -428,7 +429,11 @@ export default function Videos() {
     const unsub = onSnapshot(q, snap => {
       setVideos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
-    }, () => setLoading(false));
+      setDbError('');
+    }, err => {
+      setLoading(false);
+      setDbError(err.message || 'Failed to load videos from database.');
+    });
     return unsub;
   }, []);
 
@@ -522,7 +527,14 @@ export default function Videos() {
 
       {/* ── Main ── */}
       <div className="vid-main">
-        {loading ? (
+        {dbError ? (
+          <div className="vid-empty">
+            <div className="vid-empty-icon">⚠️</div>
+            <h3>Database Error</h3>
+            <p style={{ color: '#dc2626', fontSize: '0.9rem' }}>{dbError}</p>
+            <p>Try refreshing the page or check your internet connection.</p>
+          </div>
+        ) : loading ? (
           <div className="vid-empty">
             <div className="vid-empty-icon">⏳</div>
             <h3>Loading videos…</h3>

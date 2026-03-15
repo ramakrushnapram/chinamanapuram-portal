@@ -218,8 +218,10 @@ html { overflow-x: hidden; }
 
 /* ── Dropdown menu ── */
 .navbar-links {
-  display: grid;
-  grid-template-rows: 0fr;
+  display: flex;
+  flex-direction: column;
+  max-height: 0;
+  overflow: hidden;
   position: absolute;
   top: 68px;
   left: 0;
@@ -229,13 +231,11 @@ html { overflow-x: hidden; }
   box-shadow: 0 12px 40px rgba(0,0,0,0.5);
   z-index: 200;
   list-style: none;
-  overflow: hidden;
-  transition: grid-template-rows 0.3s ease, padding 0.3s ease;
+  transition: max-height 0.35s ease;
   padding: 0 16px;
 }
-.navbar-links > * { min-height: 0; overflow: hidden; }
 .navbar-links.open {
-  grid-template-rows: 1fr;
+  max-height: 560px;
   padding: 8px 16px 14px;
 }
 
@@ -3485,8 +3485,8 @@ html { overflow-x: hidden; }
   transform: translateY(-1px);
 }
 
-/* Mobile-only auth items */
-.navbar-mobile-auth { display: none; }
+/* Mobile-only auth items — shown inside the dropdown */
+.navbar-mobile-auth { display: list-item; }
 
 .navbar-mobile-user {
   display: flex;
@@ -4105,8 +4105,6 @@ html { overflow-x: hidden; }
 /* ═══════════════════════════════════════════════════════════
    NAVBAR MOBILE — auth user area responsive
    ═══════════════════════════════════════════════════════════ */
-
-.navbar-mobile-auth { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    VILLAGE SCENE HERO  (vg-* classes)
