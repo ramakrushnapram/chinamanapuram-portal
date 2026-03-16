@@ -88,12 +88,6 @@ export default function Login() {
       const cred = await signIn(mobileEmail, pin);
       if (!ADMIN_PHONES.includes(cleaned)) {
         const status = await checkUserStatus(cred.user.uid);
-        if (status === 'pending') {
-          await logout();
-          setError('⏳ Your account is pending admin approval. You will be notified via WhatsApp once approved.');
-          setPinLoading(false);
-          return;
-        }
         if (status === 'rejected') {
           await logout();
           setError('❌ Your registration was not approved. Please contact the Panchayat office.');
@@ -127,11 +121,6 @@ export default function Login() {
       const cred = await signIn(email.trim(), password);
       if (!ADMIN_EMAILS.includes(email.trim())) {
         const status = await checkUserStatus(cred.user.uid);
-        if (status === 'pending') {
-          await logout();
-          setError('⏳ Your account is pending admin approval.');
-          return;
-        }
         if (status === 'rejected') {
           await logout();
           setError('❌ Your registration was not approved. Contact the Panchayat office.');

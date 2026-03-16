@@ -80,7 +80,7 @@ function MobileRegister({ onSuccess }) {
         mobile:      mobileClean,
         email:       mobileEmail,
         loginType:   'mobile',
-        status:      'pending',
+        status:      'approved',
         createdAt:   serverTimestamp(),
       });
 
@@ -265,7 +265,7 @@ function EmailRegister({ onSuccess }) {
       });
 
       const uid    = cred.user.uid;
-      const status = ADMIN_EMAILS.includes(form.email.trim()) ? 'approved' : 'pending';
+      const status = 'approved';
 
       await setDoc(doc(db,'users', uid), {
         name:       form.fullName.trim(),
