@@ -168,41 +168,43 @@ export default function Navbar() {
             </li>
           </ul>
 
-          {/* Desktop user area */}
-          <div className="navbar-user-area">
-            {user ? (
-              <div className="navbar-user-pill">
-                <Link to="/profile" className="navbar-user-inner" title="My Profile">
-                  <div className="navbar-user-av">
-                    {user.photoURL
-                      ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" />
-                      : <span>{initials(user.displayName || user.email)}</span>
-                    }
-                  </div>
-                  <span className="navbar-user-name">
-                    {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
-                  </span>
-                </Link>
-                <button className="navbar-logout-btn" onClick={handleLogout} title="Sign out">
-                  🚪
-                </button>
-              </div>
-            ) : (
-              <div className="navbar-auth-btns">
-                <Link to="/login"    className="navbar-login-btn">🔐 Login</Link>
-                <Link to="/register" className="navbar-reg-btn">✨ Register</Link>
-              </div>
-            )}
-          </div>
+          {/* Right group: user area + hamburger always together on RIGHT */}
+          <div className="navbar-right">
+            <div className="navbar-user-area">
+              {user ? (
+                <div className="navbar-user-pill">
+                  <Link to="/profile" className="navbar-user-inner" title="My Profile">
+                    <div className="navbar-user-av">
+                      {user.photoURL
+                        ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" />
+                        : <span>{initials(user.displayName || user.email)}</span>
+                      }
+                    </div>
+                    <span className="navbar-user-name">
+                      {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
+                    </span>
+                  </Link>
+                  <button className="navbar-logout-btn" onClick={handleLogout} title="Sign out">
+                    🚪
+                  </button>
+                </div>
+              ) : (
+                <div className="navbar-auth-btns">
+                  <Link to="/login"    className="navbar-login-btn">Login</Link>
+                  <Link to="/register" className="navbar-reg-btn">Register</Link>
+                </div>
+              )}
+            </div>
 
-          {/* Hamburger */}
-          <button
-            className={`hamburger${open ? ' hamburger-open' : ''}`}
-            onClick={() => setOpen(o => !o)}
-            aria-label="Toggle menu"
-          >
-            <span /><span /><span />
-          </button>
+            {/* Hamburger */}
+            <button
+              className={`hamburger${open ? ' hamburger-open' : ''}`}
+              onClick={() => setOpen(o => !o)}
+              aria-label="Toggle menu"
+            >
+              <span /><span /><span />
+            </button>
+          </div>
         </div>
       </nav>
 
