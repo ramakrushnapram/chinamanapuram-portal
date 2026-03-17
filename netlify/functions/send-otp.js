@@ -40,14 +40,13 @@ exports.handler = async (event) => {
   if (fast2smsKey) {
     try {
       const otp = generateOTP();
-      const message = `CM Village OTP: ${otp}. Valid 10 mins. Do not share. -Chinamanapuram Portal`;
+      const message = `CM Village OTP: ${otp}. Valid 10 mins. Do not share.`;
 
       const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           authorization: fast2smsKey,
-          sender_id: 'FSTSMS',
           message,
           language: 'english',
           route: 'q',
@@ -55,8 +54,9 @@ exports.handler = async (event) => {
         }),
       });
       const data = await res.json();
+      console.log('Fast2SMS response:', JSON.stringify(data));
 
-      if (data.return === true) {
+      if (data.return === true || data.return === 'true') {
         const sessionId = signSession(phone, otp, otpSecret);
         return { statusCode: 200, headers, body: JSON.stringify({ sessionId, method: 'sms' }) };
       }
@@ -77,11 +77,14 @@ exports.handler = async (event) => {
     const voiceRes  = await fetch(`https://2factor.in/API/V1/${twoFactorKey}/VOICE/+91${phone}/AUTOGEN`);
     const voiceData = await voiceRes.json();
 
+    console.log('2Factor response:', JSON.stringify(voiceData));
+
     if (voiceData.Status === 'Success') {
       return { statusCode: 200, headers, body: JSON.stringify({ sessionId: voiceData.Details, method: 'voice' }) };
     }
 
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Failed to send OTP. Please try again.' }) };
+    const voiceErr = voiceData.Details || voiceData.Message || 'Voice OTP failed';
+    return { statusCode: 400, headers, body: JSON.stringify({ error: `OTP failed: ${voiceErr}` }) };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Network error sending OTP' }) };
   }
