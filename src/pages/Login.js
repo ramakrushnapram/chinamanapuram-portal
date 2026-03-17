@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { auth, db } from '../firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { signInWithCustomToken } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
@@ -18,13 +18,13 @@ export default function Login() {
   const [tab, setTab] = useState('otp');
 
   /* ── Mobile OTP state ── */
-  const [phone,             setPhone]             = useState('');
-  const [otp,               setOtp]               = useState('');
-  const [otpStep,           setOtpStep]           = useState(1);
-  const [otpSending,        setOtpSending]        = useState(false);
-  const [otpVerify,         setOtpVerify]         = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
-  const recaptchaRef = useRef(null);
+  const [phone,      setPhone]      = useState('');
+  const [otp,        setOtp]        = useState('');
+  const [otpStep,    setOtpStep]    = useState(1);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerify,  setOtpVerify]  = useState(false);
+  const [sessionId,  setSessionId]  = useState('');
+  const [otpMethod,  setOtpMethod]  = useState('');  // 'sms' or 'voice'
 
   /* ── Email state ── */
   const [email,    setEmail]    = useState('');
@@ -36,48 +36,25 @@ export default function Login() {
   /* ── Shared error ── */
   const [error, setError] = useState('');
 
-  /* ── Setup invisible reCAPTCHA ── */
-  function getRecaptcha() {
-    if (!recaptchaRef.current) {
-      recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {},
-        'expired-callback': () => { recaptchaRef.current = null; },
-      });
-    }
-    return recaptchaRef.current;
-  }
-
-  function clearRecaptcha() {
-    if (recaptchaRef.current) {
-      try { recaptchaRef.current.clear(); } catch (_) {}
-      recaptchaRef.current = null;
-    }
-  }
-
-  /* ── Send OTP via Firebase Phone Auth ── */
+  /* ── Send OTP ── */
   async function handleSendOtp(e) {
     e.preventDefault();
     const cleaned = phone.replace(/\s/g, '');
     if (!/^\d{10}$/.test(cleaned)) { setError('Enter a valid 10-digit mobile number.'); return; }
-    setError('');
-    setOtpSending(true);
+    setError(''); setOtpSending(true);
     try {
-      clearRecaptcha();
-      const verifier = getRecaptcha();
-      const result = await signInWithPhoneNumber(auth, `+91${cleaned}`, verifier);
-      setConfirmationResult(result);
+      const res  = await fetch('/.netlify/functions/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleaned }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to send OTP. Try again.'); setOtpSending(false); return; }
+      setSessionId(data.sessionId);
+      setOtpMethod(data.method || 'sms');
       setOtpStep(2);
-    } catch (err) {
-      clearRecaptcha();
-      if (err.code === 'auth/too-many-requests') {
-        setError('Too many attempts. Please wait a few minutes and try again.');
-      } else if (err.code === 'auth/invalid-phone-number') {
-        setError('Invalid phone number. Please check and try again.');
-      } else {
-        setError('Failed to send OTP. Please try again.');
-      }
-      console.error('sendOTP error:', err.code, err.message);
+    } catch (_) {
+      setError('Network error. Please check your connection and try again.');
     }
     setOtpSending(false);
   }
@@ -86,15 +63,20 @@ export default function Login() {
   async function handleVerifyOtp(e) {
     e.preventDefault();
     if (otp.length !== 6) { setError('Enter the 6-digit OTP sent to your mobile.'); return; }
-    setError('');
-    setOtpVerify(true);
+    setError(''); setOtpVerify(true);
     try {
-      const cred = await confirmationResult.confirm(otp);
+      const cleaned = phone.replace(/\s/g, '');
+      const res  = await fetch('/.netlify/functions/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleaned, otp, sessionId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Invalid OTP. Please try again.'); setOtpVerify(false); return; }
 
-      /* Check Firestore profile */
+      const cred = await signInWithCustomToken(auth, data.token);
       const snap = await getDoc(doc(db, 'users', cred.user.uid));
       if (!snap.exists()) {
-        const cleaned = phone.replace(/\s/g, '');
         navigate('/register', { state: { fromOtp: true, phone: cleaned, uid: cred.user.uid } });
         return;
       }
@@ -102,14 +84,12 @@ export default function Login() {
       if (status === 'pending') {
         await logout();
         setError('⏳ Your registration is pending admin approval. Please wait for WhatsApp notification or contact the Panchayat office.');
-        setOtpVerify(false);
-        return;
+        setOtpVerify(false); return;
       }
       if (status === 'rejected') {
         await logout();
         setError('❌ Your registration was not approved. Please contact the Panchayat office.');
-        setOtpVerify(false);
-        return;
+        setOtpVerify(false); return;
       }
       navigate(from, { replace: true });
     } catch (err) {
@@ -124,19 +104,13 @@ export default function Login() {
     setOtpVerify(false);
   }
 
-  /* ── Resend ── */
-  function handleResend() {
-    setOtp(''); setOtpStep(1); setError('');
-    setConfirmationResult(null);
-    clearRecaptcha();
-  }
+  function handleResend() { setOtp(''); setOtpStep(1); setError(''); setSessionId(''); setOtpMethod(''); }
 
   /* ── Email submit ── */
   async function handleEmailSubmit(e) {
     e.preventDefault();
     if (!email.trim() || !password) { setError('Please fill in all fields.'); return; }
-    setError('');
-    setLoading(true);
+    setError(''); setLoading(true);
     try {
       const cred = await signIn(email.trim(), password);
       if (!ADMIN_EMAILS.includes(email.trim())) {
@@ -144,8 +118,7 @@ export default function Login() {
         if (snap.exists() && snap.data().status === 'rejected') {
           await logout();
           setError('Your registration was not approved. Contact the Panchayat office.');
-          setLoading(false);
-          return;
+          setLoading(false); return;
         }
       }
       navigate(from, { replace: true });
@@ -164,8 +137,7 @@ export default function Login() {
 
   /* ── Google ── */
   async function handleGoogle() {
-    setError('');
-    setGLoading(true);
+    setError(''); setGLoading(true);
     try {
       const cred = await signInWithGoogle();
       if (!ADMIN_EMAILS.includes(cred.user.email)) {
@@ -192,13 +164,9 @@ export default function Login() {
   return (
     <div className="auth-page">
       <Navbar />
-      {/* Invisible reCAPTCHA container — required by Firebase Phone Auth */}
-      <div id="recaptcha-container" />
-
       <div className="auth-container">
         <div className="auth-card">
 
-          {/* Header */}
           <div className="auth-header">
             <div className="auth-logo">🏘️</div>
             <h1 className="auth-title">Welcome Back</h1>
@@ -208,25 +176,22 @@ export default function Login() {
           {/* Tab switcher */}
           <div style={{ display:'flex', gap:0, marginBottom:20, border:'1.5px solid #e5e7eb', borderRadius:12, overflow:'hidden' }}>
             <button type="button"
-              onClick={() => { setTab('otp'); setError(''); setOtpStep(1); setOtp(''); clearRecaptcha(); }}
+              onClick={() => { setTab('otp'); setError(''); setOtpStep(1); setOtp(''); }}
               style={{ flex:1, padding:'10px 0', border:'none', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', transition:'all 0.2s',
-                background: tab==='otp' ? '#1a6b3c' : '#fff',
-                color: tab==='otp' ? '#fff' : '#555',
+                background: tab==='otp' ? '#1a6b3c' : '#fff', color: tab==='otp' ? '#fff' : '#555',
               }}>
               📱 Mobile OTP
             </button>
             <button type="button"
               onClick={() => { setTab('email'); setError(''); }}
               style={{ flex:1, padding:'10px 0', border:'none', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', transition:'all 0.2s',
-                background: tab==='email' ? '#1a6b3c' : '#fff',
-                color: tab==='email' ? '#fff' : '#555',
+                background: tab==='email' ? '#1a6b3c' : '#fff', color: tab==='email' ? '#fff' : '#555',
                 borderLeft:'1px solid #e5e7eb',
               }}>
               📧 Email
             </button>
           </div>
 
-          {/* Error */}
           {error && <div className="auth-error" style={{ marginBottom:14 }}>⚠️ {error}</div>}
 
           {/* ── MOBILE OTP TAB ── */}
@@ -240,19 +205,12 @@ export default function Login() {
                       <div style={{ background:'#f3f4f6', border:'1.5px solid #e5e7eb', borderRadius:9, padding:'10px 12px', fontWeight:700, color:'#555', fontSize:'0.9rem', flexShrink:0 }}>
                         🇮🇳 +91
                       </div>
-                      <input
-                        className="auth-input"
-                        type="tel"
-                        value={phone}
+                      <input className="auth-input" type="tel" value={phone}
                         onChange={e => { setPhone(e.target.value.replace(/\D/g,'')); setError(''); }}
-                        placeholder="10-digit mobile number"
-                        maxLength={10}
-                        autoFocus
-                        style={{ flex:1 }}
-                        disabled={otpSending}
-                      />
+                        placeholder="10-digit mobile number" maxLength={10} autoFocus style={{ flex:1 }}
+                        disabled={otpSending} />
                     </div>
-                    <span className="auth-field-hint">📲 You will receive a free SMS OTP via Google</span>
+                    <span className="auth-field-hint">📲 You will receive an SMS with your OTP</span>
                   </div>
                   <button type="submit" className="auth-btn-primary" disabled={otpSending || phone.replace(/\s/g,'').length !== 10}>
                     {otpSending ? <><span className="auth-spinner" /> Sending OTP…</> : '📨 Send OTP'}
@@ -262,7 +220,8 @@ export default function Login() {
                 <form onSubmit={handleVerifyOtp}>
                   <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:10, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                     <span style={{ fontSize:'0.85rem', color:'#166534', fontWeight:600 }}>
-                      📱 OTP sent to +91 {phone}
+                      {otpMethod === 'voice' ? '📞' : '📱'} OTP sent to +91 {phone}
+                      {otpMethod === 'voice' && <span style={{ fontSize:'0.75rem', display:'block', marginTop:2 }}>You will receive a voice call with the OTP</span>}
                     </span>
                     <button type="button" onClick={handleResend}
                       style={{ background:'none', border:'none', color:'#1a6b3c', fontSize:'0.8rem', cursor:'pointer', fontWeight:700, textDecoration:'underline' }}>
@@ -272,19 +231,13 @@ export default function Login() {
 
                   <div className="auth-field">
                     <label className="auth-label">Enter 6-Digit OTP</label>
-                    <input
-                      className="auth-input"
-                      type="text"
-                      inputMode="numeric"
-                      value={otp}
+                    <input className="auth-input" type="text" inputMode="numeric" value={otp}
                       onChange={e => { if (/^\d{0,6}$/.test(e.target.value)) { setOtp(e.target.value); setError(''); } }}
-                      placeholder="• • • • • •"
-                      maxLength={6}
-                      autoFocus
-                      disabled={otpVerify}
-                      style={{ fontSize:'1.6rem', letterSpacing:'0.5em', textAlign:'center', fontWeight:800 }}
-                    />
-                    <span className="auth-field-hint">Check your SMS inbox 💬</span>
+                      placeholder="• • • • • •" maxLength={6} autoFocus disabled={otpVerify}
+                      style={{ fontSize:'1.6rem', letterSpacing:'0.5em', textAlign:'center', fontWeight:800 }} />
+                    <span className="auth-field-hint">
+                      {otpMethod === 'voice' ? '📞 Answer the call and note the OTP' : '💬 Check your SMS inbox'}
+                    </span>
                   </div>
 
                   <button type="submit" className="auth-btn-primary" disabled={otpVerify || otp.length !== 6}>
@@ -344,12 +297,9 @@ export default function Login() {
                   <label className="auth-label">Password</label>
                   <div className="auth-pw-wrap">
                     <input className="auth-input auth-pw-input"
-                      type={showPw ? 'text' : 'password'}
-                      value={password}
+                      type={showPw ? 'text' : 'password'} value={password}
                       onChange={e => { setPassword(e.target.value); setError(''); }}
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      disabled={loading} />
+                      placeholder="Enter your password" autoComplete="current-password" disabled={loading} />
                     <button type="button" className="auth-pw-toggle" onClick={() => setShowPw(v => !v)} tabIndex={-1}>
                       {showPw ? '🙈' : '👁️'}
                     </button>
@@ -362,7 +312,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Footer */}
           <div className="auth-card-footer">
             <p>Don't have an account?{' '}<Link to="/register" className="auth-link">Create one free</Link></p>
           </div>
