@@ -162,6 +162,107 @@ function daysFromNow(iso) {
 }
 
 
+/* ── Wikipedia "On This Day" live feed ── */
+function OnThisDayFeed() {
+  const [births,   setBirths]   = useState([]);
+  const [deaths,   setDeaths]   = useState([]);
+  const [todayStr, setTodayStr] = useState('');
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    const today = new Date();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    setTodayStr(today.toLocaleDateString('en-IN', { day:'numeric', month:'long' }));
+
+    fetch(`https://en.wikipedia.org/api/rest_v1/feed/onthisday/all/${mm}/${dd}`, {
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(r => r.json())
+      .then(data => {
+        const KEYWORDS = ['India','Indian','Telugu','Andhra','Tamil','Bengali','Punjabi','Marathi','Kannada','Kerala','Hyderabad','Bombay','Calcutta','Madras','Delhi','Rajasthan','Gujarat','Odisha','Vizianagaram','Andhra Pradesh'];
+        function isIndian(item) {
+          const text = (item.text || '') + (item.pages?.[0]?.extract || '') + (item.pages?.[0]?.description || '');
+          return KEYWORDS.some(k => text.includes(k));
+        }
+        const sortByYear = (a, b) => (b.year || 0) - (a.year || 0);
+        const allBirths = (data.births || []).sort(sortByYear);
+        const allDeaths = (data.deaths || []).sort(sortByYear);
+        const indBirths = allBirths.filter(isIndian);
+        const indDeaths = allDeaths.filter(isIndian);
+        setBirths(indBirths.length >= 3 ? indBirths.slice(0,6) : allBirths.slice(0,6));
+        setDeaths(indDeaths.length >= 2 ? indDeaths.slice(0,4) : allDeaths.slice(0,4));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <section style={{ padding:'0 0 8px' }}>
+      <div className="section-header" style={{ marginBottom:12 }}>
+        <h2 className="section-title">📅 Today in History</h2>
+      </div>
+      <div style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:6 }}>
+        {[1,2,3,4].map(i => (
+          <div key={i} style={{ minWidth:160, height:120, background:'#f3f4f6', borderRadius:12, flexShrink:0, animation:'pulse 1.5s infinite' }} />
+        ))}
+      </div>
+    </section>
+  );
+
+  if (!births.length && !deaths.length) return null;
+
+  function PersonCard({ item, type }) {
+    const page   = item.pages?.[0];
+    const thumb  = page?.thumbnail?.source;
+    const title  = page?.title?.replace(/_/g,' ') || item.text?.split(',')[0];
+    const year   = item.year;
+    const desc   = page?.description || page?.extract?.slice(0,100) || '';
+    const wiki   = page?.content_urls?.desktop?.page;
+    return (
+      <div style={{ minWidth:160, maxWidth:160, background:'#fff', borderRadius:14, boxShadow:'0 2px 10px rgba(0,0,0,0.08)', overflow:'hidden', border:'1.5px solid #e5e7eb', flexShrink:0 }}>
+        {thumb
+          ? <img src={thumb} alt={title} style={{ width:'100%', height:90, objectFit:'cover' }} />
+          : <div style={{ width:'100%', height:90, background: type==='birth' ? 'linear-gradient(135deg,#1a6b3c,#2d9959)' : 'linear-gradient(135deg,#374151,#6b7280)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem' }}>
+              {type==='birth' ? '🎂' : '🕊️'}
+            </div>
+        }
+        <div style={{ padding:'8px 10px 10px' }}>
+          <div style={{ fontSize:'0.72rem', fontWeight:800, color: type==='birth' ? '#1a6b3c' : '#374151', marginBottom:2, lineHeight:1.3 }}>{title}</div>
+          {year && <div style={{ fontSize:'0.68rem', color:'#888', marginBottom:3 }}>{type==='birth' ? '🎂' : '🕊️'} {year}</div>}
+          {desc && <div style={{ fontSize:'0.65rem', color:'#666', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{desc}</div>}
+          {wiki && <a href={wiki} target="_blank" rel="noopener noreferrer" style={{ fontSize:'0.62rem', color:'#2563eb', marginTop:4, display:'block', fontWeight:600 }}>Read more →</a>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <section style={{ padding:'0 0 16px' }}>
+      <div className="section-header" style={{ marginBottom:12 }}>
+        <h2 className="section-title">📅 Today in History – {todayStr}</h2>
+        <span style={{ fontSize:'0.75rem', color:'#888', fontStyle:'italic' }}>via Wikipedia</span>
+      </div>
+      {births.length > 0 && (
+        <>
+          <div style={{ fontSize:'0.8rem', fontWeight:700, color:'#1a6b3c', marginBottom:8 }}>🎂 Born Today</div>
+          <div style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, scrollbarWidth:'thin' }}>
+            {births.map((b,i) => <PersonCard key={i} item={b} type="birth" />)}
+          </div>
+        </>
+      )}
+      {deaths.length > 0 && (
+        <>
+          <div style={{ fontSize:'0.8rem', fontWeight:700, color:'#374151', margin:'10px 0 8px' }}>🕊️ Passed Away Today</div>
+          <div style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, scrollbarWidth:'thin' }}>
+            {deaths.map((d,i) => <PersonCard key={i} item={d} type="death" />)}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 /* ── Count-up animation hook ── */
 function useCountUp(target, duration = 1600, active = true) {
   const [count, setCount] = useState(0);
@@ -947,52 +1048,45 @@ export default function HomePage() {
       })()}
 
       {/* ══════════════════════════════════════
-          LEADERS – BIRTHDAYS & ANNIVERSARIES
+          LEADERS – TODAY IN HISTORY (Live Wikipedia)
+      ══════════════════════════════════════ */}
+      <OnThisDayFeed />
+
+      {/* ══════════════════════════════════════
+          UPCOMING LEADER ANNIVERSARIES (Next 60 days)
       ══════════════════════════════════════ */}
       {(() => {
         const sorted = [...LEADER_DAYS]
           .map(l => ({ ...l, next: nextOccurrence(l.mm, l.dd) }))
-          .sort((a, b) => a.next - b.next);
-        /* Show next 8 upcoming */
-        const upcoming = sorted.slice(0, 8);
+          .filter(l => Math.round((l.next - new Date()) / 86400000) <= 60)
+          .sort((a, b) => a.next - b.next)
+          .slice(0, 8);
+        if (!sorted.length) return null;
         return (
           <section style={{ padding:'0 0 8px' }}>
-            <div className="section-header" style={{ marginBottom:16 }}>
-              <h2 className="section-title">🎂 Leaders – Birthdays &amp; Anniversaries</h2>
+            <div className="section-header" style={{ marginBottom:12 }}>
+              <h2 className="section-title">🗓️ Upcoming Leader Anniversaries</h2>
+              <span style={{ fontSize:'0.75rem', color:'#888' }}>Next 60 days</span>
             </div>
             <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:10, scrollbarWidth:'thin' }}>
-              {upcoming.map(l => {
+              {sorted.map(l => {
                 const daysLeft = Math.round((l.next - new Date()) / 86400000);
                 const isToday  = daysLeft === 0;
-                const isSoon   = daysLeft <= 7;
                 return (
-                  <div key={l.id} style={{
-                    minWidth:180, maxWidth:180, background:'#fff', borderRadius:14,
-                    boxShadow:'0 2px 12px rgba(0,0,0,0.08)', overflow:'hidden',
-                    border: isToday ? `2px solid ${l.color}` : '1.5px solid #e5e7eb',
-                    flexShrink:0,
-                  }}>
-                    {/* Colored header */}
-                    <div style={{ background: l.color, padding:'14px 12px 10px', textAlign:'center', position:'relative' }}>
-                      <div style={{ fontSize:'2rem' }}>{l.icon}</div>
-                      <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.85)', marginTop:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                  <div key={l.id} style={{ minWidth:170, maxWidth:170, background:'#fff', borderRadius:14, boxShadow:'0 2px 10px rgba(0,0,0,0.07)', overflow:'hidden', border: isToday ? `2px solid ${l.color}` : '1.5px solid #e5e7eb', flexShrink:0 }}>
+                    <div style={{ background: l.color, padding:'12px 10px 8px', textAlign:'center', position:'relative' }}>
+                      <div style={{ fontSize:'1.8rem' }}>{l.icon}</div>
+                      <div style={{ fontSize:'0.63rem', color:'rgba(255,255,255,0.85)', marginTop:3, fontWeight:700, textTransform:'uppercase' }}>
                         {l.type === 'birthday' ? '🎂 Birthday' : '🕊️ Anniversary'}
                       </div>
-                      {isToday && (
-                        <div style={{ position:'absolute', top:6, right:6, background:'#fff', color:l.color, fontSize:'0.6rem', fontWeight:900, padding:'2px 6px', borderRadius:99, letterSpacing:'0.04em' }}>TODAY</div>
-                      )}
-                      {!isToday && isSoon && (
-                        <div style={{ position:'absolute', top:6, right:6, background:'rgba(255,255,255,0.2)', color:'#fff', fontSize:'0.6rem', fontWeight:800, padding:'2px 6px', borderRadius:99 }}>{daysLeft}d</div>
-                      )}
-                    </div>
-                    {/* Body */}
-                    <div style={{ padding:'10px 12px 12px' }}>
-                      <div style={{ fontWeight:800, fontSize:'0.8rem', color:'#111', lineHeight:1.3, marginBottom:4 }}>{l.name}</div>
-                      <div style={{ fontSize:'0.68rem', color:'#666', lineHeight:1.3, marginBottom:6 }}>{l.role}</div>
-                      <div style={{ fontSize:'0.72rem', color: isToday ? l.color : '#888', fontWeight: isToday ? 700 : 600 }}>
-                        📅 {l.next.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
+                      <div style={{ position:'absolute', top:5, right:7, background: isToday ? '#fff' : 'rgba(255,255,255,0.2)', color: isToday ? l.color : '#fff', fontSize:'0.6rem', fontWeight:900, padding:'1px 6px', borderRadius:99 }}>
+                        {isToday ? 'TODAY' : `${daysLeft}d`}
                       </div>
-                      <div style={{ fontSize:'0.68rem', color:'#555', marginTop:6, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{l.desc}</div>
+                    </div>
+                    <div style={{ padding:'8px 10px 10px' }}>
+                      <div style={{ fontWeight:800, fontSize:'0.77rem', color:'#111', lineHeight:1.3, marginBottom:3 }}>{l.name}</div>
+                      <div style={{ fontSize:'0.65rem', color:'#666', lineHeight:1.3, marginBottom:5 }}>{l.role}</div>
+                      <div style={{ fontSize:'0.68rem', color:'#888', fontWeight:600 }}>📅 {l.next.toLocaleDateString('en-IN', { day:'numeric', month:'short' })}</div>
                     </div>
                   </div>
                 );
