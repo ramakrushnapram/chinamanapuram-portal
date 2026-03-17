@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { db } from '../firebase';
@@ -37,6 +37,7 @@ const PARTICLES = [
   { size:9,  top:'50%', left:'78%', delay:'0.4s', dur:'8.5s'},
 ];
 
+// eslint-disable-next-line no-unused-vars
 const DEFAULT_ANNOUNCEMENTS = [
   { id:1, tag:'urgent', badge:'urgent', icon:'🚨', title:'Road Repair Work – Main Street',    desc:'Road repair work is ongoing on Main Street near the temple. Please use alternate routes. Work in progress near Hanuman temple junction.', date:'8 Mar 2026' },
   { id:2, tag:'event',  badge:'event',  icon:'🎉', title:'Ugadi Festival – 19 March 2026',     desc:'Ugadi (Vishwavasu Samvatsara) celebrations at Panchayat grounds. Ugadi pachadi at 6 AM, cultural programs & prize distribution from 5 PM.', date:'19 Mar 2026' },

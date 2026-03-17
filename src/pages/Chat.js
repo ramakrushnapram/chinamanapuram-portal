@@ -9,7 +9,9 @@ import {
 } from 'firebase/firestore';
 
 /* ─── Village Helper Bot ─── */
+// eslint-disable-next-line no-unused-vars
 const BOT_NAME = 'Village Helper Bot';
+// eslint-disable-next-line no-unused-vars
 const BOT_AV   = '🤖';
 
 const BOT_RULES = [
@@ -95,6 +97,7 @@ const BOT_RULES = [
   },
 ];
 
+// eslint-disable-next-line no-unused-vars
 function getBotReply(text) {
   const lower = text.toLowerCase();
   for (const rule of BOT_RULES) {
