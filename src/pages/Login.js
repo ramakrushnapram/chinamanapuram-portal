@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { auth, db } from '../firebase';
-import { signInWithCustomToken } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 const ADMIN_EMAILS = ['admin@chinamanapuram.com'];
@@ -13,18 +13,18 @@ export default function Login() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const from      = location.state?.from || '/';
-  // justLoggedOut no longer used — logout redirects to home
 
   /* Tab: 'otp' | 'email' */
   const [tab, setTab] = useState('otp');
 
   /* ── Mobile OTP state ── */
-  const [phone,      setPhone]      = useState('');
-  const [otp,        setOtp]        = useState('');
-  const [otpStep,    setOtpStep]    = useState(1); // 1: enter phone, 2: enter OTP
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerify,  setOtpVerify]  = useState(false);
-  const [sessionId,  setSessionId]  = useState('');
+  const [phone,             setPhone]             = useState('');
+  const [otp,               setOtp]               = useState('');
+  const [otpStep,           setOtpStep]           = useState(1);
+  const [otpSending,        setOtpSending]        = useState(false);
+  const [otpVerify,         setOtpVerify]         = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const recaptchaRef = useRef(null);
 
   /* ── Email state ── */
   const [email,    setEmail]    = useState('');
@@ -36,7 +36,26 @@ export default function Login() {
   /* ── Shared error ── */
   const [error, setError] = useState('');
 
-  /* ── Send OTP via 2Factor (Netlify function) ── */
+  /* ── Setup invisible reCAPTCHA ── */
+  function getRecaptcha() {
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => {},
+        'expired-callback': () => { recaptchaRef.current = null; },
+      });
+    }
+    return recaptchaRef.current;
+  }
+
+  function clearRecaptcha() {
+    if (recaptchaRef.current) {
+      try { recaptchaRef.current.clear(); } catch (_) {}
+      recaptchaRef.current = null;
+    }
+  }
+
+  /* ── Send OTP via Firebase Phone Auth ── */
   async function handleSendOtp(e) {
     e.preventDefault();
     const cleaned = phone.replace(/\s/g, '');
@@ -44,44 +63,38 @@ export default function Login() {
     setError('');
     setOtpSending(true);
     try {
-      const res  = await fetch('/.netlify/functions/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleaned }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to send OTP. Try again.'); setOtpSending(false); return; }
-      setSessionId(data.sessionId);
+      clearRecaptcha();
+      const verifier = getRecaptcha();
+      const result = await signInWithPhoneNumber(auth, `+91${cleaned}`, verifier);
+      setConfirmationResult(result);
       setOtpStep(2);
-    } catch (_) {
-      setError('Network error. Please check your connection and try again.');
+    } catch (err) {
+      clearRecaptcha();
+      if (err.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait a few minutes and try again.');
+      } else if (err.code === 'auth/invalid-phone-number') {
+        setError('Invalid phone number. Please check and try again.');
+      } else {
+        setError('Failed to send OTP. Please try again.');
+      }
+      console.error('sendOTP error:', err.code, err.message);
     }
     setOtpSending(false);
   }
 
-  /* ── Verify OTP via 2Factor → Firebase custom token ── */
+  /* ── Verify OTP ── */
   async function handleVerifyOtp(e) {
     e.preventDefault();
     if (otp.length !== 6) { setError('Enter the 6-digit OTP sent to your mobile.'); return; }
     setError('');
     setOtpVerify(true);
     try {
-      const cleaned = phone.replace(/\s/g, '');
-      const res  = await fetch('/.netlify/functions/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleaned, otp, sessionId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Invalid OTP. Please try again.'); setOtpVerify(false); return; }
-
-      /* Sign in to Firebase with custom token */
-      const cred = await signInWithCustomToken(auth, data.token);
+      const cred = await confirmationResult.confirm(otp);
 
       /* Check Firestore profile */
       const snap = await getDoc(doc(db, 'users', cred.user.uid));
       if (!snap.exists()) {
-        /* New phone user — send to register to complete profile */
+        const cleaned = phone.replace(/\s/g, '');
         navigate('/register', { state: { fromOtp: true, phone: cleaned, uid: cred.user.uid } });
         return;
       }
@@ -111,12 +124,11 @@ export default function Login() {
     setOtpVerify(false);
   }
 
-  /* ── Resend OTP ── */
+  /* ── Resend ── */
   function handleResend() {
-    setOtp('');
-    setOtpStep(1);
-    setError('');
-    setSessionId('');
+    setOtp(''); setOtpStep(1); setError('');
+    setConfirmationResult(null);
+    clearRecaptcha();
   }
 
   /* ── Email submit ── */
@@ -180,6 +192,9 @@ export default function Login() {
   return (
     <div className="auth-page">
       <Navbar />
+      {/* Invisible reCAPTCHA container — required by Firebase Phone Auth */}
+      <div id="recaptcha-container" />
+
       <div className="auth-container">
         <div className="auth-card">
 
@@ -193,7 +208,7 @@ export default function Login() {
           {/* Tab switcher */}
           <div style={{ display:'flex', gap:0, marginBottom:20, border:'1.5px solid #e5e7eb', borderRadius:12, overflow:'hidden' }}>
             <button type="button"
-              onClick={() => { setTab('otp'); setError(''); setOtpStep(1); setOtp(''); }}
+              onClick={() => { setTab('otp'); setError(''); setOtpStep(1); setOtp(''); clearRecaptcha(); }}
               style={{ flex:1, padding:'10px 0', border:'none', fontWeight:700, fontSize:'0.88rem', cursor:'pointer', transition:'all 0.2s',
                 background: tab==='otp' ? '#1a6b3c' : '#fff',
                 color: tab==='otp' ? '#fff' : '#555',
@@ -218,7 +233,6 @@ export default function Login() {
           {tab === 'otp' && (
             <div>
               {otpStep === 1 ? (
-                /* Step 1: Enter phone */
                 <form onSubmit={handleSendOtp}>
                   <div className="auth-field">
                     <label className="auth-label">Mobile Number</label>
@@ -238,16 +252,14 @@ export default function Login() {
                         disabled={otpSending}
                       />
                     </div>
-                    <span className="auth-field-hint">You will receive an SMS with "CM Village OTP: XXXXXX" 💬</span>
+                    <span className="auth-field-hint">📲 You will receive a free SMS OTP via Google</span>
                   </div>
                   <button type="submit" className="auth-btn-primary" disabled={otpSending || phone.replace(/\s/g,'').length !== 10}>
                     {otpSending ? <><span className="auth-spinner" /> Sending OTP…</> : '📨 Send OTP'}
                   </button>
                 </form>
               ) : (
-                /* Step 2: Enter OTP */
                 <form onSubmit={handleVerifyOtp}>
-                  {/* Phone display */}
                   <div style={{ background:'#f0fdf4', border:'1px solid #86efac', borderRadius:10, padding:'10px 14px', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                     <span style={{ fontSize:'0.85rem', color:'#166534', fontWeight:600 }}>
                       📱 OTP sent to +91 {phone}
@@ -272,7 +284,7 @@ export default function Login() {
                       disabled={otpVerify}
                       style={{ fontSize:'1.6rem', letterSpacing:'0.5em', textAlign:'center', fontWeight:800 }}
                     />
-                    <span className="auth-field-hint">Check your SMS for "CM Village OTP: XXXXXX" 💬</span>
+                    <span className="auth-field-hint">Check your SMS inbox 💬</span>
                   </div>
 
                   <button type="submit" className="auth-btn-primary" disabled={otpVerify || otp.length !== 6}>
@@ -288,10 +300,8 @@ export default function Login() {
                 </form>
               )}
 
-              {/* Divider */}
               <div className="auth-divider" style={{ margin:'20px 0 16px' }}><span>or continue with</span></div>
 
-              {/* Google */}
               <button className="auth-btn-google" onClick={handleGoogle} disabled={gLoading} type="button">
                 {gLoading ? <span className="auth-spinner" /> : (
                   <svg className="auth-google-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -309,7 +319,6 @@ export default function Login() {
           {/* ── EMAIL TAB ── */}
           {tab === 'email' && (
             <div>
-              {/* Google button */}
               <button className="auth-btn-google" onClick={handleGoogle} disabled={gLoading || loading} type="button">
                 {gLoading ? <span className="auth-spinner" /> : (
                   <svg className="auth-google-icon" viewBox="0 0 24 24" aria-hidden="true">

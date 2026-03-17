@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { auth, db } from '../firebase';
-import { signInWithCustomToken } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { doc, setDoc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 
 const WARDS = [
@@ -27,7 +27,6 @@ function openWhatsApp(phone, message) {
 function MobileRegister({ onSuccess, prefillPhone }) {
   const { logout } = useAuth();
 
-  /* Step 1: form fields  |  Step 2: OTP entry */
   const [step,       setStep]       = useState(1);
   const [form,       setForm]       = useState({
     fullName: '', familyName: '', ward: '',
@@ -38,7 +37,8 @@ function MobileRegister({ onSuccess, prefillPhone }) {
   const [otpSending, setOtpSending] = useState(false);
   const [otp,        setOtp]        = useState('');
   const [otpVerify,  setOtpVerify]  = useState(false);
-  const [sessionId,  setSessionId]  = useState('');
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const recaptchaRef = useRef(null);
 
   function set(field, val) {
     setForm(f => ({ ...f, [field]: val }));
@@ -54,7 +54,25 @@ function MobileRegister({ onSuccess, prefillPhone }) {
     return e;
   }
 
-  /* Step 1 → 2: Validate form then send OTP via Netlify function */
+  function getRecaptcha() {
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container-reg', {
+        size: 'invisible',
+        callback: () => {},
+        'expired-callback': () => { recaptchaRef.current = null; },
+      });
+    }
+    return recaptchaRef.current;
+  }
+
+  function clearRecaptcha() {
+    if (recaptchaRef.current) {
+      try { recaptchaRef.current.clear(); } catch (_) {}
+      recaptchaRef.current = null;
+    }
+  }
+
+  /* Step 1 → 2: Validate form then send OTP via Firebase */
   async function handleSendOtp(e) {
     e.preventDefault();
     const errs = validate();
@@ -72,22 +90,26 @@ function MobileRegister({ onSuccess, prefillPhone }) {
         return;
       }
 
-      const res  = await fetch('/.netlify/functions/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: mobileClean }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to send OTP. Try again.'); setOtpSending(false); return; }
-      setSessionId(data.sessionId);
+      clearRecaptcha();
+      const verifier = getRecaptcha();
+      const result = await signInWithPhoneNumber(auth, `+91${mobileClean}`, verifier);
+      setConfirmationResult(result);
       setStep(2);
-    } catch (_) {
-      setError('Network error. Please check your connection and try again.');
+    } catch (err) {
+      clearRecaptcha();
+      if (err.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait a few minutes and try again.');
+      } else if (err.code === 'auth/invalid-phone-number') {
+        setError('Invalid phone number. Please check and try again.');
+      } else {
+        setError('Failed to send OTP. Please try again.');
+      }
+      console.error('sendOTP error:', err.code, err.message);
     }
     setOtpSending(false);
   }
 
-  /* Step 2: Verify OTP → Firebase custom token → save profile */
+  /* Step 2: Verify OTP → save profile */
   async function handleVerifyOtp(e) {
     e.preventDefault();
     if (otp.length !== 6) { setError('Enter the 6-digit OTP.'); return; }
@@ -95,19 +117,10 @@ function MobileRegister({ onSuccess, prefillPhone }) {
 
     const mobileClean = form.mobile.replace(/\s/g,'');
     try {
-      const res  = await fetch('/.netlify/functions/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: mobileClean, otp, sessionId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Invalid OTP. Please try again.'); setOtpVerify(false); return; }
-
-      /* Sign in with Firebase custom token */
-      const cred = await signInWithCustomToken(auth, data.token);
+      const cred = await confirmationResult.confirm(otp);
       const uid  = cred.user.uid;
 
-      /* Save to Firestore — pending until admin approves */
+      /* Save to Firestore */
       await setDoc(doc(db,'users', uid), {
         name:       form.fullName.trim(),
         familyName: form.familyName.trim(),
@@ -115,7 +128,7 @@ function MobileRegister({ onSuccess, prefillPhone }) {
         mobile:     mobileClean,
         email:      '',
         loginType:  'phone',
-        status:     'pending',
+        status:     'approved',
         createdAt:  serverTimestamp(),
       });
 
@@ -134,7 +147,7 @@ function MobileRegister({ onSuccess, prefillPhone }) {
         });
       } catch (_) {}
 
-      /* Sign out — user must login manually so they go through proper flow */
+      /* Sign out — user must login manually */
       await logout();
 
       /* Get admin WhatsApp number */
@@ -148,7 +161,7 @@ function MobileRegister({ onSuccess, prefillPhone }) {
       } catch (_) {}
 
       const adminMsg = `New registration from ${form.fullName.trim()} - ${mobileClean} - Ward: ${form.ward || 'Not specified'}\n\nPortal: https://chinamanapuram-portal.netlify.app`;
-      onSuccess({ name: form.fullName.trim(), mobile: mobileClean, adminPhone, adminMsg, hasAdminPhone: adminPhone !== '911234567890' });
+      onSuccess({ name: form.fullName.trim(), mobile: mobileClean, adminPhone, adminMsg, hasAdminPhone: true });
 
     } catch (err) {
       if (err.code === 'auth/invalid-verification-code') {
@@ -163,13 +176,16 @@ function MobileRegister({ onSuccess, prefillPhone }) {
   }
 
   function handleResend() {
-    setOtp(''); setError(''); setStep(1); setSessionId('');
+    setOtp(''); setError(''); setStep(1);
+    setConfirmationResult(null);
+    clearRecaptcha();
   }
 
   /* ── Step 1: Form ── */
   if (step === 1) {
     return (
       <form className="auth-form" onSubmit={handleSendOtp} noValidate>
+        <div id="recaptcha-container-reg" />
         <div className="auth-form-grid">
 
           <div className="auth-field auth-field-full">
@@ -206,7 +222,7 @@ function MobileRegister({ onSuccess, prefillPhone }) {
                 placeholder="10-digit mobile" maxLength={10} disabled={otpSending} style={{ flex:1 }} />
             </div>
             {errors.mobile && <span className="auth-field-err">{errors.mobile}</span>}
-            <span className="auth-field-hint">You will receive an SMS with "CM Village OTP: XXXXXX" 💬</span>
+            <span className="auth-field-hint">📲 Free SMS OTP via Google — no charges</span>
           </div>
 
         </div>
@@ -247,7 +263,7 @@ function MobileRegister({ onSuccess, prefillPhone }) {
           disabled={otpVerify}
           style={{ fontSize:'1.6rem', letterSpacing:'0.5em', textAlign:'center', fontWeight:800 }}
         />
-        <span className="auth-field-hint">Check your SMS for "CM Village OTP: XXXXXX" 💬</span>
+        <span className="auth-field-hint">Check your SMS inbox 💬</span>
       </div>
 
       {error && <div className="auth-error" style={{ marginTop:8 }}>⚠️ {error}</div>}
@@ -267,7 +283,7 @@ function MobileRegister({ onSuccess, prefillPhone }) {
 }
 
 /* ───────────── Email Registration ───────────── */
-function EmailRegister({ onSuccess }) {
+function EmailRegister() {
   const { signUp, signInWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -502,9 +518,7 @@ export default function Register() {
   const [submitted, setSubmitted] = useState(false);
   const [userData,  setUserData]  = useState(null);
 
-  /* Pre-fill phone if redirected from Login after OTP (new user) */
   const prefillPhone = location.state?.phone || '';
-  const prefillUid   = location.state?.uid   || null;
 
   function handleSuccess(data) {
     setUserData(data);
@@ -518,29 +532,25 @@ export default function Register() {
         <Navbar />
         <div className="auth-container">
           <div className="auth-card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '4rem', marginBottom: 12 }}>⏳</div>
-            <h2 style={{ color: 'var(--primary)', marginBottom: 8 }}>Request Submitted!</h2>
+            <div style={{ fontSize: '4rem', marginBottom: 12 }}>🎉</div>
+            <h2 style={{ color: 'var(--primary)', marginBottom: 8 }}>Registration Successful!</h2>
             <p style={{ color: 'var(--text-mid)', marginBottom: 20, lineHeight: 1.7 }}>
-              Hi <strong>{userData.name}</strong>, your registration is submitted!
-              You can login once the Sarpanch / Admin approves your account.
+              Hi <strong>{userData.name}</strong>, welcome to Chinamanapuram Village Portal!
+              You can login now with your mobile OTP.
             </p>
 
             <div className="reg-pending-box">
               <div className="reg-pending-step">
                 <span className="reg-step-num">1</span>
-                <span>Registration submitted ✅</span>
+                <span>Registration complete ✅</span>
               </div>
               <div className="reg-pending-step">
                 <span className="reg-step-num">2</span>
-                <span>Admin reviews and approves ⏳</span>
+                <span>Login with Mobile OTP anytime 📱</span>
               </div>
               <div className="reg-pending-step">
                 <span className="reg-step-num">3</span>
-                <span>You get WhatsApp notification ✅</span>
-              </div>
-              <div className="reg-pending-step">
-                <span className="reg-step-num">4</span>
-                <span>Login with Mobile OTP 🎉</span>
+                <span>Access all village features 🏘️</span>
               </div>
             </div>
 
@@ -605,9 +615,9 @@ export default function Register() {
           {regTab === 'mobile' && (
             <div>
               <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:10, padding:'10px 14px', marginBottom:18, fontSize:'0.83rem', color:'#92400e' }}>
-                💬 <strong>Quick SMS OTP:</strong> Enter your mobile number to receive "CM Village OTP: XXXXXX" via SMS. No PIN needed!
+                📲 <strong>Free SMS OTP:</strong> Enter your mobile number to receive a one-time password via SMS. Powered by Google — completely free!
               </div>
-              <MobileRegister onSuccess={handleSuccess} prefillPhone={prefillPhone} prefillUid={prefillUid} />
+              <MobileRegister onSuccess={handleSuccess} prefillPhone={prefillPhone} />
             </div>
           )}
 
