@@ -705,6 +705,60 @@ html { overflow-x: hidden; }
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* ── Village Events Grid (homepage) ── */
+.hp-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+.hp-event-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border: 1px solid #f0f0f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.hp-event-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+.hp-event-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+.hp-event-img-placeholder {
+  width: 100%;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hp-event-body {
+  padding: 10px 12px 12px;
+}
+.hp-event-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #1a1a1a;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.hp-event-date {
+  font-size: 0.75rem;
+  color: #e8891a;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.hp-event-desc {
+  font-size: 0.78rem;
+  color: #666;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .announcement-card {
   background: var(--white);
   border-radius: 16px;
@@ -1536,6 +1590,15 @@ html { overflow-x: hidden; }
 @keyframes fd-card-in {
   from { opacity: 0; transform: translateY(32px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes puppyBob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30%       { transform: translateY(-5px) rotate(-3deg); }
+  60%       { transform: translateY(-3px) rotate(2deg); }
 }
 @keyframes fd-orb-float {
   0%, 100% { transform: translate(0, 0)    scale(1);    opacity: 0.12; }
@@ -3491,6 +3554,23 @@ html { overflow-x: hidden; }
 }
 
 .navbar-logout-btn:hover { color: #ff8a80; }
+
+.navbar-admin-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(232,137,26,0.2);
+  border: 1px solid rgba(232,137,26,0.5);
+  color: #e8891a;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.navbar-admin-btn:hover { background: rgba(232,137,26,0.35); }
 
 /* Auth buttons (not logged in) */
 .navbar-auth-btns {

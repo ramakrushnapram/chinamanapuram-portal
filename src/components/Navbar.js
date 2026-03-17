@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+
+const ADMIN_EMAILS = ['admin@chinamanapuram.com', 'ramakrushna.pram@gmail.com'];
 
 const NAV_LINKS = [
   { to: '/',            label: 'Home',        icon: '🏠', end: true },
@@ -37,6 +39,7 @@ export default function Navbar() {
   const [open, setOpen]               = useState(false);
   const [tickerItems, setTickerItems] = useState(DEFAULT_TICKER);
   const [spPhoto, setSpPhoto]         = useState('');
+  const [liveCount, setLiveCount]     = useState(0);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -44,14 +47,20 @@ export default function Navbar() {
     const unsubTicker = onSnapshot(
       doc(db, 'settings', 'ticker'),
       snap => { if (snap.exists() && snap.data().items?.length) setTickerItems(snap.data().items); },
-      () => {} // ignore permission errors — use default ticker
+      () => {}
     );
     const unsubSp = onSnapshot(
       doc(db, 'settings', 'sarpanch'),
       snap => { if (snap.exists() && snap.data().photoURL) setSpPhoto(snap.data().photoURL); },
-      () => {} // ignore permission errors — use default avatar
+      () => {}
     );
-    return () => { unsubTicker(); unsubSp(); };
+    /* Live online count from presence collection */
+    const unsubLive = onSnapshot(
+      query(collection(db, 'presence'), where('online', '==', true)),
+      snap => setLiveCount(snap.size),
+      () => {}
+    );
+    return () => { unsubTicker(); unsubSp(); unsubLive(); };
   }, []);
 
   const tickerContent = [...tickerItems, ...tickerItems];
@@ -59,7 +68,7 @@ export default function Navbar() {
   async function handleLogout() {
     try {
       await logout();
-      navigate('/login', { state: { loggedOut: true } });
+      navigate('/');
     } catch (_) {}
     setOpen(false);
   }
@@ -155,6 +164,9 @@ export default function Navbar() {
                     <div className="navbar-mobile-name">{user.displayName || user.email}</div>
                     <div className="navbar-mobile-links">
                       <Link to="/profile" onClick={() => setOpen(false)}>👤 My Profile</Link>
+                      {ADMIN_EMAILS.includes(user.email) && (
+                        <Link to="/admin" onClick={() => setOpen(false)}>⚙️ Admin Portal</Link>
+                      )}
                       <button onClick={handleLogout}>🚪 Logout</button>
                     </div>
                   </div>
@@ -184,6 +196,11 @@ export default function Navbar() {
                       {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
                     </span>
                   </Link>
+                  {ADMIN_EMAILS.includes(user.email) && (
+                    <Link to="/admin" className="navbar-admin-btn" title="Admin Portal">
+                      ⚙️ Admin
+                    </Link>
+                  )}
                   <button className="navbar-logout-btn" onClick={handleLogout} title="Sign out">
                     🚪
                   </button>
@@ -214,6 +231,18 @@ export default function Navbar() {
           <span className="ticker-label-dot" />
           LIVE
         </div>
+        {liveCount > 0 && (
+          <div title={`${liveCount} member${liveCount !== 1 ? 's' : ''} online now`} style={{
+            display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+            background: 'rgba(255,255,255,0.15)', borderRadius: 20,
+            padding: '2px 10px', marginRight: 6, cursor: 'default',
+          }}>
+            <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block', boxShadow:'0 0 0 2px rgba(74,222,128,0.4)', animation:'pulse-dot 1.4s infinite' }} />
+            <span style={{ color:'#fff', fontSize:'0.72rem', fontWeight:700, letterSpacing:0.3 }}>
+              {liveCount} online
+            </span>
+          </div>
+        )}
         <div className="ticker-viewport">
           <div className="ticker-track">
             {tickerContent.map((item, i) => (

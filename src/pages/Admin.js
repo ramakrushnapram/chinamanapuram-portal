@@ -790,18 +790,57 @@ function TickerTab({ items }) {
   );
 }
 
+/* ── Shared image upload row ── */
+function ImageUploadField({ imageUrl, setImageUrl, folder }) {
+  const [uploading, setUploading] = useState(false);
+  const [progress,  setProgress]  = useState(0);
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true); setProgress(0);
+    try {
+      const { promise } = cloudinaryUpload(file, folder, p => setProgress(p));
+      const url = await promise;
+      setImageUrl(url);
+    } catch (_) {}
+    setUploading(false);
+  }
+
+  return (
+    <div className="form-group form-span-2">
+      <label className="form-label">Photo / Image (optional)</label>
+      {imageUrl ? (
+        <div style={{ position:'relative', display:'inline-block' }}>
+          <img src={imageUrl} alt="preview" style={{ width:'100%', maxHeight:160, objectFit:'cover', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+          <button type="button" onClick={() => setImageUrl('')}
+            style={{ position:'absolute', top:4, right:4, background:'rgba(0,0,0,0.6)', border:'none', borderRadius:'50%', width:24, height:24, color:'#fff', cursor:'pointer', fontSize:'0.8rem', fontWeight:700 }}>✕</button>
+        </div>
+      ) : (
+        <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', border:'2px dashed #d1d5db', borderRadius:8, padding:'12px 16px', color:'#6b7280', fontSize:'0.85rem' }}>
+          <span style={{ fontSize:'1.4rem' }}>🖼️</span>
+          {uploading ? `Uploading… ${progress}%` : 'Click to upload image'}
+          <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} style={{ display:'none' }} />
+        </label>
+      )}
+    </div>
+  );
+}
+
 /* ── Announcements Tab ── */
 function AnnounceTab({ items }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ icon:'📋', tag:'Notice', title:'', desc:'', date:'' });
-  const [saving, setSaving] = useState(false);
+  const [form,     setForm]     = useState({ icon:'📋', tag:'Notice', title:'', desc:'', date:'' });
+  const [imageUrl, setImageUrl] = useState('');
+  const [saving,   setSaving]   = useState(false);
 
   async function handleSave(e) {
     e.preventDefault(); setSaving(true);
     try {
-      await addDoc(collection(db,'announcements'), { ...form, createdAt: serverTimestamp() });
+      await addDoc(collection(db,'announcements'), { ...form, imageUrl, createdAt: serverTimestamp() });
       setShowForm(false);
       setForm({ icon:'📋', tag:'Notice', title:'', desc:'', date:'' });
+      setImageUrl('');
     } catch (_) {}
     setSaving(false);
   }
@@ -846,6 +885,7 @@ function AnnounceTab({ items }) {
                   <label className="form-label">Date</label>
                   <input className="form-input" value={form.date} onChange={e => setForm(f=>({...f,date:e.target.value}))} placeholder="e.g. Mar 15, 2026" />
                 </div>
+                <ImageUploadField imageUrl={imageUrl} setImageUrl={setImageUrl} folder="announcements" />
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>Cancel</button>
@@ -859,7 +899,8 @@ function AnnounceTab({ items }) {
       <div className="admin-announce-list">
         {items.map(item => (
           <div key={item.id} className="admin-announce-card">
-            <span className="admin-ann-icon">{item.icon}</span>
+            {item.imageUrl && <img src={item.imageUrl} alt="" style={{ width:60, height:60, objectFit:'cover', borderRadius:8, flexShrink:0 }} />}
+            {!item.imageUrl && <span className="admin-ann-icon">{item.icon}</span>}
             <div className="admin-ann-body">
               <strong>{item.title}</strong>
               <p>{item.desc}</p>
@@ -877,15 +918,17 @@ function AnnounceTab({ items }) {
 /* ── Events Tab ── */
 function EventsTab({ items }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ icon:'🎊', title:'', date:'', desc:'', color:'orange' });
-  const [saving, setSaving] = useState(false);
+  const [form,     setForm]     = useState({ icon:'🎊', title:'', date:'', desc:'', color:'orange' });
+  const [imageUrl, setImageUrl] = useState('');
+  const [saving,   setSaving]   = useState(false);
 
   async function handleSave(e) {
     e.preventDefault(); setSaving(true);
     try {
-      await addDoc(collection(db,'events'), { ...form, createdAt: serverTimestamp() });
+      await addDoc(collection(db,'events'), { ...form, imageUrl, createdAt: serverTimestamp() });
       setShowForm(false);
       setForm({ icon:'🎊', title:'', date:'', desc:'', color:'orange' });
+      setImageUrl('');
     } catch (_) {}
     setSaving(false);
   }
@@ -896,7 +939,7 @@ function EventsTab({ items }) {
         <h2 className="admin-section-title">📅 Upcoming Events ({items.length})</h2>
         <button className="admin-add-btn" onClick={() => setShowForm(true)}>＋ Add Event</button>
       </div>
-      <p className="admin-hint">Events appear in the Upcoming Events section on the Home page.</p>
+      <p className="admin-hint">Events appear on the Home page with photos for all villagers.</p>
 
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
@@ -930,6 +973,7 @@ function EventsTab({ items }) {
                   <label className="form-label">Description</label>
                   <textarea className="form-input" rows={3} value={form.desc} onChange={e => setForm(f=>({...f,desc:e.target.value}))} />
                 </div>
+                <ImageUploadField imageUrl={imageUrl} setImageUrl={setImageUrl} folder="events" />
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>Cancel</button>
@@ -943,7 +987,8 @@ function EventsTab({ items }) {
       <div className="admin-events-list">
         {items.map(item => (
           <div key={item.id} className="admin-event-card">
-            <span className="admin-ev-icon">{item.icon}</span>
+            {item.imageUrl && <img src={item.imageUrl} alt="" style={{ width:60, height:60, objectFit:'cover', borderRadius:8, flexShrink:0 }} />}
+            {!item.imageUrl && <span className="admin-ev-icon">{item.icon}</span>}
             <div className="admin-ev-body">
               <strong>{item.title}</strong>
               <p>{item.desc}</p>

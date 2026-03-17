@@ -364,30 +364,67 @@ function getBotReply(text) {
   return null;
 }
 
-const RobotSVG = () => (
-  <svg viewBox="0 0 80 80" style={{ width:'100%', height:'100%' }}>
-    <circle cx="40" cy="40" r="40" fill="#1a6b3c"/>
-    <rect x="37" y="6" width="6" height="10" rx="3" fill="#fff" opacity="0.9"/>
-    <circle cx="40" cy="5" r="4" fill="#e8891a"/>
-    <rect x="16" y="16" width="48" height="36" rx="10" fill="#fff" opacity="0.95"/>
-    <rect x="24" y="26" width="12" height="10" rx="3" fill="#1a6b3c"/>
-    <rect x="44" y="26" width="12" height="10" rx="3" fill="#1a6b3c"/>
-    <circle cx="28" cy="29" r="2" fill="#fff" opacity="0.8"/>
-    <circle cx="48" cy="29" r="2" fill="#fff" opacity="0.8"/>
-    <rect x="26" y="40" width="28" height="6" rx="3" fill="#e8891a" opacity="0.9"/>
-    <rect x="22" y="55" width="36" height="18" rx="8" fill="#fff" opacity="0.9"/>
-    <circle cx="32" cy="64" r="3" fill="#1a6b3c" opacity="0.6"/>
-    <circle cx="40" cy="64" r="3" fill="#e8891a" opacity="0.8"/>
-    <circle cx="48" cy="64" r="3" fill="#1a6b3c" opacity="0.6"/>
-    <rect x="8" y="56" width="12" height="6" rx="3" fill="#fff" opacity="0.8"/>
-    <rect x="60" y="56" width="12" height="6" rx="3" fill="#fff" opacity="0.8"/>
+/* ── Puppy SVGs ── */
+const PuppyAwake = () => (
+  <svg viewBox="0 0 80 80" style={{width:'100%',height:'100%'}}>
+    <circle cx="40" cy="40" r="40" fill="#fffaf5"/>
+    <ellipse cx="21" cy="30" rx="9" ry="14" fill="#c8956c" transform="rotate(-18,21,30)"/>
+    <ellipse cx="21" cy="31" rx="5.5" ry="9" fill="#e8b89a" transform="rotate(-18,21,31)"/>
+    <ellipse cx="59" cy="30" rx="9" ry="14" fill="#c8956c" transform="rotate(18,59,30)"/>
+    <ellipse cx="59" cy="31" rx="5.5" ry="9" fill="#e8b89a" transform="rotate(18,59,31)"/>
+    <circle cx="40" cy="40" r="24" fill="#f7f7f5"/>
+    <circle cx="32" cy="36" r="6.5" fill="#fff"/>
+    <circle cx="48" cy="36" r="6.5" fill="#fff"/>
+    <circle cx="33" cy="36" r="4.5" fill="#1a1a2e"/>
+    <circle cx="49" cy="36" r="4.5" fill="#1a1a2e"/>
+    <circle cx="34.5" cy="34" r="1.8" fill="#fff"/>
+    <circle cx="50.5" cy="34" r="1.8" fill="#fff"/>
+    <ellipse cx="40" cy="45" rx="5" ry="3.5" fill="#d46080"/>
+    <ellipse cx="38.5" cy="43.8" rx="1.4" ry="0.9" fill="#fff" opacity="0.6"/>
+    <path d="M36 48 Q40 52 44 48" stroke="#b04060" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    <ellipse cx="40" cy="52" rx="4" ry="3" fill="#f08090"/>
+    <circle cx="27" cy="44" r="5" fill="#ffb3c1" opacity="0.35"/>
+    <circle cx="53" cy="44" r="5" fill="#ffb3c1" opacity="0.35"/>
+    <circle cx="32" cy="18" r="6.5" fill="#f0f0ee"/>
+    <circle cx="40" cy="16" r="7" fill="#f0f0ee"/>
+    <circle cx="48" cy="18" r="6.5" fill="#f0f0ee"/>
+  </svg>
+);
+
+const PuppySleep = () => (
+  <svg viewBox="0 0 80 80" style={{width:'100%',height:'100%'}}>
+    <circle cx="40" cy="40" r="40" fill="#f0f4ff"/>
+    <ellipse cx="21" cy="30" rx="9" ry="14" fill="#c8956c" transform="rotate(-18,21,30)"/>
+    <ellipse cx="21" cy="31" rx="5.5" ry="9" fill="#e8b89a" transform="rotate(-18,21,31)"/>
+    <ellipse cx="59" cy="30" rx="9" ry="14" fill="#c8956c" transform="rotate(18,59,30)"/>
+    <ellipse cx="59" cy="31" rx="5.5" ry="9" fill="#e8b89a" transform="rotate(18,59,31)"/>
+    <circle cx="40" cy="42" r="24" fill="#f7f7f5"/>
+    <path d="M26 37 Q32 33 38 37" stroke="#999" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    <path d="M42 37 Q48 33 54 37" stroke="#999" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    <path d="M28 36 L27 34" stroke="#bbb" strokeWidth="1.2" strokeLinecap="round"/>
+    <path d="M32 34.5 L31.5 32" stroke="#bbb" strokeWidth="1.2" strokeLinecap="round"/>
+    <path d="M44 36 L43.5 34" stroke="#bbb" strokeWidth="1.2" strokeLinecap="round"/>
+    <path d="M49 34.5 L49.5 32" stroke="#bbb" strokeWidth="1.2" strokeLinecap="round"/>
+    <ellipse cx="40" cy="47" rx="5" ry="3.5" fill="#d46080"/>
+    <ellipse cx="38.5" cy="45.8" rx="1.4" ry="0.9" fill="#fff" opacity="0.6"/>
+    <path d="M37 50 Q40 53 43 50" stroke="#b04060" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+    <circle cx="27" cy="46" r="5" fill="#ffb3c1" opacity="0.35"/>
+    <circle cx="53" cy="46" r="5" fill="#ffb3c1" opacity="0.35"/>
+    <circle cx="32" cy="20" r="6.5" fill="#f0f0ee"/>
+    <circle cx="40" cy="18" r="7" fill="#f0f0ee"/>
+    <circle cx="48" cy="20" r="6.5" fill="#f0f0ee"/>
+    <text x="53" y="26" fontSize="9" fill="#a0b4e8" fontWeight="800" fontFamily="Arial,sans-serif">z</text>
+    <text x="59" y="19" fontSize="11" fill="#b0c0f0" fontWeight="800" fontFamily="Arial,sans-serif">z</text>
+    <text x="66" y="12" fontSize="13" fill="#c0d0ff" fontWeight="800" fontFamily="Arial,sans-serif">Z</text>
   </svg>
 );
 
 export default function HomePage() {
   const [announcements,  setAnnouncements]  = useState([]);
+  const [events,         setEvents]         = useState([]);
   const [festivalModal,  setFestivalModal]  = useState(null);
   const [showcaseModal,  setShowcaseModal]  = useState(null);
+  const [eventModal,     setEventModal]     = useState(null);
   const [weather,        setWeather]        = useState(null);
   const [weatherLoading,setWeatherLoading]= useState(true);
   const [statsReady,    setStatsReady]    = useState(false);
@@ -397,6 +434,8 @@ export default function HomePage() {
   const [botMsgs,    setBotMsgs]    = useState([{ id:0, from:'bot', text:'🙏 నమస్కారం! Hello! I am Village Helper Bot.\n\nAsk me about health, farming, emergency numbers, festivals, or village info!\n\nType in Telugu or English 🇮🇳' }]);
   const [botInput,   setBotInput]   = useState('');
   const botBottomRef = useRef(null);
+  const [botPos,  setBotPos]  = useState(null);
+  const botDrag = useRef({ dragging:false, sx:0, sy:0, px:0, py:0, moved:false });
   const [livePopulation,setLivePopulation]= useState(0);
   const [liveMembers,   setLiveMembers]   = useState(0);
 
@@ -462,6 +501,17 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    try {
+      const q = query(collection(db, 'events'), limit(12));
+      const unsub = onSnapshot(q,
+        snap => setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+        () => {}
+      );
+      return unsub;
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
     botBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [botMsgs, botOpen]);
 
@@ -477,6 +527,41 @@ export default function HomePage() {
         setBotMsgs(prev => [...prev, { id: Date.now() + 1, from: 'bot', text: reply }]);
       }, 500);
     }
+  }
+
+  function handleBotDragStart(e) {
+    e.preventDefault();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const cur = botPos || { x: window.innerWidth - 84, y: window.innerHeight - 88 };
+    botDrag.current = { dragging:true, sx:cx, sy:cy, px:cur.x, py:cur.y, moved:false };
+    function onMove(ev) {
+      const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const dx = mx - botDrag.current.sx;
+      const dy = my - botDrag.current.sy;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) botDrag.current.moved = true;
+      setBotPos({
+        x: Math.max(4, Math.min(window.innerWidth  - 68, botDrag.current.px + dx)),
+        y: Math.max(4, Math.min(window.innerHeight - 68, botDrag.current.py + dy)),
+      });
+    }
+    function onUp() {
+      botDrag.current.dragging = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend',  onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+    document.addEventListener('touchmove', onMove, { passive:false });
+    document.addEventListener('touchend',  onUp);
+  }
+
+  function handleBotClick() {
+    if (!botDrag.current.moved) setBotOpen(o => !o);
+    botDrag.current.moved = false;
   }
 
   return (
@@ -630,18 +715,24 @@ export default function HomePage() {
       ══════════════════════════════════════ */}
       <div className="main-content">
 
-        {/* Left: Announcements */}
+        {/* Left: Announcements + Events */}
         <div>
+          {/* Announcements */}
           <div className="section-header">
             <h2 className="section-title">📢 Announcements</h2>
-            <Link to="/complaints" className="section-link">View all →</Link>
           </div>
           <div className="announcements-list">
+            {announcements.length === 0 && (
+              <div style={{ color:'#aaa', fontSize:'0.85rem', padding:'12px 0' }}>No announcements yet.</div>
+            )}
             {announcements.slice(0, 4).map(ann => (
               <div key={ann.id} className="announcement-card">
                 <div className={`ann-accent ${ann.tag || 'info'}`} />
                 <div className="ann-inner">
-                  <div className={`ann-badge ${ann.badge || ann.tag || 'info'}`}>{ann.icon || '📌'}</div>
+                  {ann.imageUrl
+                    ? <img src={ann.imageUrl} alt="" style={{ width:52, height:52, objectFit:'cover', borderRadius:8, flexShrink:0 }} />
+                    : <div className={`ann-badge ${ann.badge || ann.tag || 'info'}`}>{ann.icon || '📌'}</div>
+                  }
                   <div className="ann-content">
                     <div className="ann-top">
                       <span className={`ann-tag ${ann.tag || 'info'}`}>{ann.tag || 'info'}</span>
@@ -654,6 +745,33 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+
+          {/* Events with photos */}
+          {events.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <div className="section-header">
+                <h2 className="section-title">🎉 Village Events</h2>
+              </div>
+              <div className="hp-events-grid">
+                {events.map(ev => (
+                  <div key={ev.id} className="hp-event-card" onClick={() => setEventModal(ev)} style={{ cursor:'pointer' }}>
+                    {ev.imageUrl
+                      ? <img src={ev.imageUrl} alt={ev.title} className="hp-event-img" />
+                      : <div className="hp-event-img-placeholder" style={{ background: ev.color === 'green' ? '#dcfce7' : ev.color === 'blue' ? '#dbeafe' : ev.color === 'red' ? '#fee2e2' : ev.color === 'purple' ? '#ede9fe' : '#fef3c7' }}>
+                          <span style={{ fontSize:'2.5rem' }}>{ev.icon || '🎊'}</span>
+                        </div>
+                    }
+                    <div className="hp-event-body">
+                      <div className="hp-event-title">{ev.title}</div>
+                      {ev.date && <div className="hp-event-date">📅 {ev.date}</div>}
+                      {ev.desc && <div className="hp-event-desc" style={{ WebkitLineClamp:2, display:'-webkit-box', WebkitBoxOrient:'vertical', overflow:'hidden' }}>{ev.desc}</div>}
+                      <div style={{ marginTop:8, fontSize:'0.75rem', color:'var(--primary)', fontWeight:700 }}>Tap to view details →</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Sidebar */}
@@ -886,73 +1004,106 @@ export default function HomePage() {
       )}
 
       {/* ══════════════════════════════════════
+          EVENT DETAIL MODAL
+      ══════════════════════════════════════ */}
+      {eventModal && (
+        <div className="fest-modal-backdrop" onClick={() => setEventModal(null)}>
+          <div className="fest-modal" onClick={e => e.stopPropagation()} style={{ maxWidth:480 }}>
+            <button className="fest-modal-close" onClick={() => setEventModal(null)}>✕</button>
+            {eventModal.imageUrl
+              ? <div className="fest-modal-banner" style={{ backgroundImage:`url(${eventModal.imageUrl})`, backgroundSize:'cover', backgroundPosition:'center', height:200 }} />
+              : <div className="hp-event-img-placeholder" style={{ height:120, borderRadius:0, background: eventModal.color === 'green' ? '#dcfce7' : eventModal.color === 'blue' ? '#dbeafe' : eventModal.color === 'red' ? '#fee2e2' : eventModal.color === 'purple' ? '#ede9fe' : '#fef3c7', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ fontSize:'3.5rem' }}>{eventModal.icon || '🎊'}</span>
+                </div>
+            }
+            <div className="fest-modal-body">
+              <h2 className="fest-modal-title" style={{ fontSize:'1.25rem' }}>{eventModal.title}</h2>
+              {eventModal.date && <div className="fest-modal-date">📅 {eventModal.date}</div>}
+              {eventModal.desc && <p style={{ fontSize:'0.92rem', color:'#444', lineHeight:1.7, marginTop:12, whiteSpace:'pre-line' }}>{eventModal.desc}</p>}
+              <div className="fest-modal-village" style={{ marginTop:16 }}>🏘️ Chinamanapuram · Gantyada Mandal · Vizianagaram District · AP</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════
           VILLAGE STATISTICS GRAPH
       ══════════════════════════════════════ */}
       <VillageGraph liveFamilies={liveFamilies} livePopulation={livePopulation} />
 
       {/* ══════════════════════════════════════
-          FLOATING BOT WIDGET
+          FLOATING BOT WIDGET – draggable puppy
       ══════════════════════════════════════ */}
-      <div style={{ position:'fixed', bottom:24, right:20, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:12 }}>
-        {/* Chat panel */}
-        {botOpen && (
-          <div style={{ width:320, maxWidth:'calc(100vw - 40px)', background:'#fff', borderRadius:18, boxShadow:'0 8px 40px rgba(0,0,0,0.25)', display:'flex', flexDirection:'column', overflow:'hidden', maxHeight:'70vh' }}>
-            {/* Header */}
-            <div style={{ background:'linear-gradient(135deg, #1a6b3c, #2d9959)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
-              <div style={{ width:36, height:36, borderRadius:'50%', overflow:'hidden', flexShrink:0 }}>
-                <RobotSVG />
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ color:'#fff', fontWeight:800, fontSize:'0.9rem' }}>Village Helper Bot</div>
-                <div style={{ color:'rgba(255,255,255,0.7)', fontSize:'0.72rem' }}>Telugu + English · Ask anything</div>
-              </div>
-              <button onClick={() => setBotOpen(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:28, height:28, color:'#fff', cursor:'pointer', fontSize:'1rem', fontWeight:700 }}>✕</button>
-            </div>
-            {/* Messages */}
-            <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, minHeight:200, maxHeight:320 }}>
-              {botMsgs.map(msg => (
-                <div key={msg.id} style={{ display:'flex', gap:8, alignItems:'flex-start', flexDirection: msg.from==='user' ? 'row-reverse' : 'row' }}>
-                  {msg.from === 'bot' && (
-                    <div style={{ width:28, height:28, borderRadius:'50%', overflow:'hidden', flexShrink:0 }}>
-                      <RobotSVG />
-                    </div>
-                  )}
-                  <div style={{
-                    background: msg.from==='user' ? '#1a6b3c' : '#f3f4f6',
-                    color: msg.from==='user' ? '#fff' : '#1a1a1a',
-                    borderRadius: msg.from==='user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                    padding:'8px 12px', fontSize:'0.82rem', lineHeight:1.5,
-                    maxWidth:'80%', whiteSpace:'pre-wrap',
-                  }}>
-                    {msg.text}
+      {(() => {
+        const btnSize  = 64;
+        const rightPx  = botPos ? Math.max(4, window.innerWidth  - botPos.x - btnSize) : 20;
+        const bottomPx = botPos ? Math.max(4, window.innerHeight - botPos.y - btnSize) : 24;
+        return (
+          <div style={{ position:'fixed', bottom:bottomPx, right:rightPx, zIndex:9999, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:12, userSelect:'none' }}>
+            {/* Chat panel */}
+            {botOpen && (
+              <div style={{ width:320, maxWidth:'calc(100vw - 40px)', background:'#fff', borderRadius:18, boxShadow:'0 8px 40px rgba(0,0,0,0.25)', display:'flex', flexDirection:'column', overflow:'hidden', maxHeight:'70vh' }}>
+                <div style={{ background:'linear-gradient(135deg,#1a6b3c,#2d9959)', padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, borderRadius:'50%', overflow:'hidden', flexShrink:0, background:'#fff' }}>
+                    <PuppyAwake />
                   </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ color:'#fff', fontWeight:800, fontSize:'0.9rem' }}>Village Helper 🐶</div>
+                    <div style={{ color:'rgba(255,255,255,0.7)', fontSize:'0.72rem' }}>Telugu + English · Ask anything</div>
+                  </div>
+                  <button onClick={() => setBotOpen(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:28, height:28, color:'#fff', cursor:'pointer', fontSize:'1rem', fontWeight:700 }}>✕</button>
                 </div>
-              ))}
-              <div ref={botBottomRef} />
-            </div>
-            {/* Input */}
-            <div style={{ padding:'10px 12px', borderTop:'1px solid #e5e7eb', display:'flex', gap:8 }}>
-              <input
-                value={botInput}
-                onChange={e => setBotInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendBotMsg()}
-                placeholder="Ask in Telugu or English…"
-                style={{ flex:1, border:'1.5px solid #e5e7eb', borderRadius:10, padding:'8px 12px', fontSize:'0.83rem', outline:'none' }}
-              />
-              <button onClick={sendBotMsg} disabled={!botInput.trim()}
-                style={{ background:'#1a6b3c', color:'#fff', border:'none', borderRadius:10, padding:'8px 14px', fontWeight:700, cursor:'pointer', fontSize:'1rem' }}>
-                ➤
-              </button>
+                <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, minHeight:200, maxHeight:320 }}>
+                  {botMsgs.map(msg => (
+                    <div key={msg.id} style={{ display:'flex', gap:8, alignItems:'flex-start', flexDirection: msg.from==='user' ? 'row-reverse' : 'row' }}>
+                      {msg.from === 'bot' && (
+                        <div style={{ width:28, height:28, borderRadius:'50%', overflow:'hidden', flexShrink:0, background:'#fff' }}>
+                          <PuppyAwake />
+                        </div>
+                      )}
+                      <div style={{
+                        background: msg.from==='user' ? '#1a6b3c' : '#f3f4f6',
+                        color: msg.from==='user' ? '#fff' : '#1a1a1a',
+                        borderRadius: msg.from==='user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                        padding:'8px 12px', fontSize:'0.82rem', lineHeight:1.5,
+                        maxWidth:'80%', whiteSpace:'pre-wrap',
+                      }}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={botBottomRef} />
+                </div>
+                <div style={{ padding:'10px 12px', borderTop:'1px solid #e5e7eb', display:'flex', gap:8 }}>
+                  <input
+                    value={botInput}
+                    onChange={e => setBotInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendBotMsg()}
+                    placeholder="Ask in Telugu or English…"
+                    style={{ flex:1, border:'1.5px solid #e5e7eb', borderRadius:10, padding:'8px 12px', fontSize:'0.83rem', outline:'none' }}
+                  />
+                  <button onClick={sendBotMsg} disabled={!botInput.trim()}
+                    style={{ background:'#1a6b3c', color:'#fff', border:'none', borderRadius:10, padding:'8px 14px', fontWeight:700, cursor:'pointer', fontSize:'1rem' }}>
+                    ➤
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Draggable puppy button */}
+            <div
+              onMouseDown={handleBotDragStart}
+              onTouchStart={handleBotDragStart}
+              onClick={handleBotClick}
+              role="button"
+              tabIndex={0}
+              title="Drag me anywhere! Click to chat 🐶"
+              style={{ width:btnSize, height:btnSize, borderRadius:'50%', border:'3px solid #fff', boxShadow:'0 4px 20px rgba(0,0,0,0.28)', cursor:'grab', overflow:'hidden', background:'#fff', flexShrink:0, animation: botOpen ? 'none' : 'puppyBob 3s ease-in-out infinite' }}
+            >
+              {botOpen ? <PuppyAwake /> : <PuppySleep />}
             </div>
           </div>
-        )}
-        {/* Floating button */}
-        <button onClick={() => setBotOpen(o => !o)}
-          style={{ width:58, height:58, borderRadius:'50%', border:'3px solid #fff', boxShadow:'0 4px 20px rgba(0,0,0,0.3)', cursor:'pointer', padding:0, overflow:'hidden', background:'#1a6b3c' }}
-          title="Village Helper Bot">
-          <RobotSVG />
-        </button>
-      </div>
+        );
+      })()}
 
       {/* ══════════════════════════════════════
           FOOTER

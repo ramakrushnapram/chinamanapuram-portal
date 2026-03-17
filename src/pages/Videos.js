@@ -228,69 +228,172 @@ function UploadModal({ user, onClose, onUploaded }) {
     }
   }
 
+  const inputStyle = {
+    width: '100%', border: '1.5px solid #c6e3c8', borderRadius: 10,
+    padding: '10px 14px', fontSize: '0.9rem', outline: 'none',
+    boxSizing: 'border-box', fontFamily: 'inherit', background: '#f9fdf9',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+  };
+  function onFocus(e)  { e.target.style.borderColor = '#1a6b3c'; e.target.style.boxShadow = '0 0 0 3px rgba(26,107,60,0.12)'; }
+  function onBlurEl(e) { e.target.style.borderColor = '#c6e3c8'; e.target.style.boxShadow = 'none'; }
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">📤 Upload Your Video</h2>
-          <button className="modal-close" onClick={onClose} disabled={uploading}>✕</button>
-        </div>
-        <form className="modal-body" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label className="form-label">Title *</label>
-            <input
-              className="form-input"
-              placeholder="E.g. Ugadi Celebrations 2026"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              disabled={uploading}
-            />
+    <div className="modal-overlay" onClick={onClose} style={{ background: 'rgba(10,40,20,0.72)', backdropFilter: 'blur(4px)' }}>
+      <div style={{
+        background: '#fff', borderRadius: 20, width: '100%', maxWidth: 500,
+        boxShadow: '0 24px 80px rgba(10,60,20,0.35)', overflow: 'hidden',
+        margin: '16px auto', animation: 'modalSlideIn 0.28s cubic-bezier(.34,1.56,.64,1)',
+      }} onClick={e => e.stopPropagation()}>
+
+        {/* ── Village-themed header ── */}
+        <div style={{
+          background: 'linear-gradient(135deg, #1a6b3c 0%, #155c32 50%, #0f4525 100%)',
+          padding: '22px 24px', position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Decorative circles */}
+          <div style={{ position:'absolute', top:-20, right:-20, width:100, height:100, borderRadius:'50%', background:'rgba(255,255,255,0.05)' }} />
+          <div style={{ position:'absolute', bottom:-30, left:60, width:80, height:80, borderRadius:'50%', background:'rgba(232,137,26,0.12)' }} />
+
+          <div style={{ display:'flex', alignItems:'center', gap:14, position:'relative' }}>
+            <div style={{
+              width:50, height:50, background:'rgba(255,255,255,0.15)', borderRadius:14,
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.6rem',
+              border:'1.5px solid rgba(255,255,255,0.2)',
+            }}>🎬</div>
+            <div>
+              <h2 style={{ color:'#fff', margin:0, fontSize:'1.15rem', fontWeight:800, letterSpacing:0.3 }}>Upload Your Video</h2>
+              <p style={{ color:'rgba(255,255,255,0.65)', margin:'3px 0 0', fontSize:'0.77rem' }}>
+                🌾 Share village moments with the community
+              </p>
+            </div>
+            <button onClick={onClose} disabled={uploading} style={{
+              marginLeft:'auto', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)',
+              borderRadius:'50%', width:34, height:34, color:'#fff', cursor:'pointer',
+              fontSize:'1rem', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center',
+              transition:'background 0.2s',
+            }}>✕</button>
           </div>
+        </div>
+
+        {/* ── Form body ── */}
+        <form onSubmit={handleSubmit} style={{
+          padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 16,
+          background: 'linear-gradient(180deg, #f9fdf9 0%, #fff 100%)',
+        }}>
+
+          {/* Title */}
           <div>
-            <label className="form-label">Category</label>
-            <select className="form-input" value={category} onChange={e => setCategory(e.target.value)} disabled={uploading}>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#1a6b3c', marginBottom:6 }}>
+              📝 Video Title <span style={{ color:'#e8891a' }}>*</span>
+            </label>
+            <input style={inputStyle} placeholder="E.g. Ugadi Celebrations 2026"
+              value={title} onChange={e => setTitle(e.target.value)}
+              disabled={uploading} onFocus={onFocus} onBlur={onBlurEl} />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#1a6b3c', marginBottom:6 }}>
+              📁 Category
+            </label>
+            <select style={{ ...inputStyle, cursor:'pointer' }} value={category}
+              onChange={e => setCategory(e.target.value)} disabled={uploading}
+              onFocus={onFocus} onBlur={onBlurEl}>
               {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
+
+          {/* Description */}
           <div>
-            <label className="form-label">Description</label>
-            <textarea
-              className="form-input"
-              rows={3}
-              placeholder="Brief description of the video..."
-              value={desc}
-              onChange={e => setDesc(e.target.value)}
-              disabled={uploading}
-              style={{ resize: 'vertical' }}
-            />
-          </div>
-          <div>
-            <label className="form-label">Video File * (MP4, MOV, etc. – max 200 MB)</label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={handleFile}
-              disabled={uploading}
-              style={{ display: 'block', width: '100%', padding: '8px 0' }}
-            />
-            {file && <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 4 }}>Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)</div>}
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#1a6b3c', marginBottom:6 }}>
+              💬 Description <span style={{ fontWeight:400, color:'#9ca3af', fontSize:'0.75rem' }}>(optional)</span>
+            </label>
+            <textarea style={{ ...inputStyle, resize:'vertical', minHeight:70 }} rows={3}
+              placeholder="Describe this village moment..."
+              value={desc} onChange={e => setDesc(e.target.value)}
+              disabled={uploading} onFocus={onFocus} onBlur={onBlurEl} />
           </div>
 
+          {/* Drag & Drop file area */}
+          <div>
+            <label style={{ display:'block', fontSize:'0.8rem', fontWeight:700, color:'#1a6b3c', marginBottom:8 }}>
+              🎥 Video File <span style={{ color:'#e8891a' }}>*</span>
+            </label>
+            <label style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:8,
+              border: file ? '2px solid #1a6b3c' : '2px dashed #a3d9b0',
+              borderRadius:14, padding:'20px 16px', cursor: uploading ? 'not-allowed' : 'pointer',
+              background: file ? 'rgba(26,107,60,0.06)' : '#f0f9f2',
+              transition:'all 0.2s', textAlign:'center',
+            }}>
+              <input type="file" accept="video/*" onChange={handleFile}
+                disabled={uploading} style={{ display:'none' }} />
+              {file ? (
+                <>
+                  <div style={{ fontSize:'2rem' }}>✅</div>
+                  <div style={{ fontWeight:700, color:'#1a6b3c', fontSize:'0.88rem' }}>{file.name}</div>
+                  <div style={{ color:'#6b7280', fontSize:'0.78rem' }}>
+                    {(file.size / 1024 / 1024).toFixed(1)} MB · Click to change file
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize:'2.4rem' }}>📁</div>
+                  <div style={{ fontWeight:700, color:'#374151', fontSize:'0.9rem' }}>
+                    Click to choose video file
+                  </div>
+                  <div style={{ color:'#9ca3af', fontSize:'0.76rem' }}>
+                    MP4, MOV, AVI, MKV · Max 200 MB
+                  </div>
+                </>
+              )}
+            </label>
+          </div>
+
+          {/* Upload progress */}
           {uploading && (
             <div>
-              <div className="vid-progress-bar">
-                <div className="vid-progress-fill" style={{ width: `${progress}%` }} />
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                <span style={{ fontSize:'0.8rem', color:'#1a6b3c', fontWeight:700 }}>Uploading…</span>
+                <span style={{ fontSize:'0.8rem', color:'#1a6b3c', fontWeight:700 }}>{progress}%</span>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-light)', marginTop: 4, textAlign: 'center' }}>Uploading… {progress}%</div>
+              <div style={{ height:8, background:'#e5e7eb', borderRadius:99, overflow:'hidden' }}>
+                <div style={{
+                  height:'100%', borderRadius:99,
+                  background:'linear-gradient(90deg, #1a6b3c, #e8891a)',
+                  width:`${progress}%`, transition:'width 0.3s',
+                }} />
+              </div>
             </div>
           )}
 
-          {error && <div className="form-error">{error}</div>}
+          {error && (
+            <div style={{ background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:10, padding:'10px 14px', color:'#dc2626', fontSize:'0.84rem' }}>
+              ⚠️ {error}
+            </div>
+          )}
 
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" className="btn-cancel" onClick={onClose} disabled={uploading}>Cancel</button>
-            <button type="submit" className="btn-save" disabled={uploading}>
-              {uploading ? `Uploading ${progress}%` : '📤 Upload Video'}
+          {/* Buttons */}
+          <div style={{ display:'flex', gap:10, marginTop:4 }}>
+            <button type="button" onClick={onClose} disabled={uploading} style={{
+              flex:1, padding:'12px', border:'1.5px solid #1a6b3c', borderRadius:11,
+              background:'#fff', color:'#1a6b3c', fontWeight:700, cursor:'pointer',
+              fontSize:'0.9rem', transition:'all 0.2s',
+            }}
+              onMouseOver={e => { e.target.style.background='#f0f9f2'; }}
+              onMouseOut={e => { e.target.style.background='#fff'; }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={uploading || !file} style={{
+              flex:2, padding:'12px', border:'none', borderRadius:11,
+              background: (uploading || !file) ? '#d1d5db' : 'linear-gradient(135deg, #1a6b3c, #155c32)',
+              color:'#fff', fontWeight:700, cursor:(uploading || !file) ? 'not-allowed' : 'pointer',
+              fontSize:'0.9rem', transition:'all 0.2s',
+              boxShadow: (!uploading && file) ? '0 4px 14px rgba(26,107,60,0.35)' : 'none',
+            }}
+              onMouseOver={e => { if (!uploading && file) e.target.style.transform='translateY(-1px)'; }}
+              onMouseOut={e => { e.target.style.transform='none'; }}>
+              {uploading ? `⏳ Uploading ${progress}%…` : '🎬 Upload Video'}
             </button>
           </div>
         </form>
