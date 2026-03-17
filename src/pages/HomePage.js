@@ -1269,16 +1269,20 @@ export default function HomePage() {
               </div>
             )}
             {/* Draggable puppy button */}
-            <div
-              onMouseDown={handleBotDragStart}
-              onTouchStart={handleBotDragStart}
-              onClick={handleBotClick}
-              role="button"
-              tabIndex={0}
-              title="Drag me anywhere! Click to chat 🐶"
-              style={{ width:btnSize, height:btnSize, borderRadius:'50%', border:'3px solid #fff', boxShadow:'0 4px 20px rgba(0,0,0,0.28)', cursor:'grab', overflow:'hidden', background:'#fff', flexShrink:0, animation: botOpen ? 'none' : 'puppyBob 3s ease-in-out infinite' }}
-            >
-              {botOpen ? <PuppyAwake /> : <PuppySleep />}
+            <div style={{ position:'relative', flexShrink:0 }}>
+              {!botOpen && <div style={{ position:'absolute', inset:-6, borderRadius:'50%', border:'3px solid #e8891a', opacity:0.5, animation:'puppyBob 2s ease-in-out infinite', pointerEvents:'none' }} />}
+              <div
+                onMouseDown={handleBotDragStart}
+                onTouchStart={handleBotDragStart}
+                onClick={handleBotClick}
+                role="button"
+                tabIndex={0}
+                title="Click to chat with Village Helper 🐶"
+                style={{ width:btnSize, height:btnSize, borderRadius:'50%', border:'3px solid #e8891a', boxShadow:'0 4px 24px rgba(232,137,26,0.6)', cursor:'pointer', overflow:'hidden', background:'linear-gradient(135deg,#fff8ee,#fff)', display:'block', animation: botOpen ? 'none' : 'puppyBob 3s ease-in-out infinite' }}
+              >
+                {botOpen ? <PuppyAwake /> : <PuppySleep />}
+              </div>
+              {!botOpen && <div style={{ position:'absolute', bottom:-6, left:'50%', transform:'translateX(-50%)', background:'#e8891a', color:'#fff', fontSize:'0.6rem', fontWeight:800, borderRadius:99, padding:'2px 7px', whiteSpace:'nowrap', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}>Ask me!</div>}
             </div>
           </div>
         );

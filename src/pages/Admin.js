@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import {
   collection, doc, getDoc, setDoc, onSnapshot,
-  addDoc, deleteDoc, serverTimestamp,
+  addDoc, updateDoc, deleteDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { cloudinaryUpload, isCloudinaryConfigured } from '../utils/cloudinaryUpload';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -932,23 +932,38 @@ const EVENT_CATEGORIES = [
 
 /* ── Events Tab ── */
 function EventsTab({ items }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form,     setForm]     = useState({ category:'🎊 Festival / Celebration', icon:'🎊', title:'', date:'', desc:'', color:'orange' });
-  const [imageUrl, setImageUrl] = useState('');
-  const [saving,   setSaving]   = useState(false);
+  const BLANK = { category:'🎊 Festival / Celebration', icon:'🎊', title:'', date:'', desc:'', color:'orange' };
+  const [showForm,  setShowForm]  = useState(false);
+  const [editId,    setEditId]    = useState(null);   // null = add, string = edit
+  const [form,      setForm]      = useState(BLANK);
+  const [imageUrl,  setImageUrl]  = useState('');
+  const [saving,    setSaving]    = useState(false);
 
   function handleCategory(label) {
     const cat = EVENT_CATEGORIES.find(c => c.label === label);
     if (cat) setForm(f => ({ ...f, category: label, icon: cat.icon, color: cat.color }));
   }
 
+  function openAdd() {
+    setEditId(null); setForm(BLANK); setImageUrl(''); setShowForm(true);
+  }
+
+  function openEdit(item) {
+    setEditId(item.id);
+    setForm({ category: item.category || BLANK.category, icon: item.icon || BLANK.icon, title: item.title || '', date: item.date || '', desc: item.desc || '', color: item.color || BLANK.color });
+    setImageUrl(item.imageUrl || '');
+    setShowForm(true);
+  }
+
   async function handleSave(e) {
     e.preventDefault(); setSaving(true);
     try {
-      await addDoc(collection(db,'events'), { ...form, imageUrl, createdAt: serverTimestamp() });
-      setShowForm(false);
-      setForm({ category:'🎊 Festival / Celebration', icon:'🎊', title:'', date:'', desc:'', color:'orange' });
-      setImageUrl('');
+      if (editId) {
+        await updateDoc(doc(db,'events', editId), { ...form, imageUrl, updatedAt: serverTimestamp() });
+      } else {
+        await addDoc(collection(db,'events'), { ...form, imageUrl, createdAt: serverTimestamp() });
+      }
+      setShowForm(false); setForm(BLANK); setImageUrl(''); setEditId(null);
     } catch (_) {}
     setSaving(false);
   }
@@ -957,7 +972,7 @@ function EventsTab({ items }) {
     <div>
       <div className="admin-section-hdr">
         <h2 className="admin-section-title">📅 Village Events &amp; News ({items.length})</h2>
-        <button className="admin-add-btn" onClick={() => setShowForm(true)}>＋ Add Event</button>
+        <button className="admin-add-btn" onClick={openAdd}>＋ Add Event</button>
       </div>
       <p className="admin-hint">Events appear on the Home page. Add marriages, news, festivals, health camps, etc.</p>
 
@@ -965,7 +980,7 @@ function EventsTab({ items }) {
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">📅 Add Village Event / News</h2>
+              <h2 className="modal-title">{editId ? '✏️ Edit Event' : '📅 Add Village Event / News'}</h2>
               <button className="modal-close" onClick={() => setShowForm(false)}>✕</button>
             </div>
             <form className="modal-body" onSubmit={handleSave}>
@@ -992,7 +1007,7 @@ function EventsTab({ items }) {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>Cancel</button>
-                <button type="submit" className="btn-save" disabled={saving}>{saving ? 'Saving…' : '💾 Post Event'}</button>
+                <button type="submit" className="btn-save" disabled={saving}>{saving ? 'Saving…' : editId ? '💾 Save Changes' : '💾 Post Event'}</button>
               </div>
             </form>
           </div>
@@ -1010,7 +1025,10 @@ function EventsTab({ items }) {
               <p>{item.desc}</p>
               <small>{item.date}</small>
             </div>
-            <button className="admin-del-btn" onClick={() => window.confirm('Delete?') && deleteDoc(doc(db,'events',item.id)).catch(()=>{})}>🗑️</button>
+            <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0 }}>
+              <button className="admin-edit-btn" onClick={() => openEdit(item)} title="Edit">✏️</button>
+              <button className="admin-del-btn" onClick={() => window.confirm('Delete this event?') && deleteDoc(doc(db,'events',item.id)).catch(()=>{})}>🗑️</button>
+            </div>
           </div>
         ))}
         {items.length === 0 && <div className="admin-empty">No events posted yet. Add marriages, news, festivals, health camps above.</div>}

@@ -5156,6 +5156,59 @@ html { overflow-x: hidden; }
   cursor: pointer; transition: background .2s;
 }
 .admin-del-btn:hover { background: #fecaca; }
+.admin-edit-btn {
+  padding: 6px 12px; background: #dbeafe; color: #1d4ed8;
+  border: none; border-radius: 6px; font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: background .2s;
+}
+.admin-edit-btn:hover { background: #bfdbfe; }
+
+/* Floating village assistant */
+.village-bot-fab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 999;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: linear-gradient(135deg, #1a6b3c, #e8891a);
+  border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(26,107,60,0.45);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; transition: transform .2s, box-shadow .2s;
+  animation: botPulse 2.5s ease-in-out infinite;
+}
+.village-bot-fab:hover { transform: scale(1.12); box-shadow: 0 6px 28px rgba(26,107,60,0.6); }
+@keyframes botPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(26,107,60,0.45); }
+  50% { box-shadow: 0 4px 32px rgba(232,137,26,0.7); }
+}
+.village-bot-popup {
+  position: fixed; bottom: 92px; right: 24px; z-index: 998;
+  width: 290px; background: #fff; border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden;
+  animation: botSlideUp .25s ease;
+}
+@keyframes botSlideUp { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform:none; } }
+.village-bot-header {
+  background: linear-gradient(135deg, #1a6b3c, #2d9e5e);
+  padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+}
+.village-bot-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); display: flex; align-items: center;
+  justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+}
+.village-bot-name { color: #fff; font-weight: 700; font-size: 0.88rem; }
+.village-bot-status { color: rgba(255,255,255,0.75); font-size: 0.72rem; }
+.village-bot-body { padding: 14px; }
+.village-bot-msg {
+  background: #f0fdf4; border-radius: 10px; padding: 10px 12px;
+  font-size: 0.83rem; color: #166534; line-height: 1.5; margin-bottom: 10px;
+}
+.village-bot-actions { display: flex; flex-direction: column; gap: 6px; }
+.village-bot-action {
+  background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 8px;
+  padding: 7px 10px; font-size: 0.78rem; color: #1a6b3c; font-weight: 600;
+  cursor: pointer; text-align: left; transition: background .15s;
+  text-decoration: none; display: block;
+}
+.village-bot-action:hover { background: #f0fdf4; border-color: #1a6b3c; }
 
 /* Complaints */
 .admin-complaint-list { display: flex; flex-direction: column; gap: 12px; }
