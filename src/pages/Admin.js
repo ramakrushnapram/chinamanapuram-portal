@@ -915,19 +915,39 @@ function AnnounceTab({ items }) {
   );
 }
 
+/* ── Event categories ── */
+const EVENT_CATEGORIES = [
+  { label:'💒 Marriage / Wedding',      icon:'💒', color:'purple' },
+  { label:'🎊 Festival / Celebration',  icon:'🎊', color:'orange' },
+  { label:'📰 Village News',            icon:'📰', color:'blue'   },
+  { label:'🏥 Health Camp',             icon:'🏥', color:'green'  },
+  { label:'🏫 Education / School',      icon:'🏫', color:'blue'   },
+  { label:'⚠️ Urgent Notice',           icon:'⚠️', color:'red'    },
+  { label:'🌾 Farming / Agriculture',   icon:'🌾', color:'green'  },
+  { label:'🔧 Panchayath Work',         icon:'🔧', color:'orange' },
+  { label:'🎭 Cultural / Drama',        icon:'🎭', color:'purple' },
+  { label:'🏏 Sports Event',            icon:'🏏', color:'blue'   },
+  { label:'📋 General',                 icon:'📋', color:'orange' },
+];
+
 /* ── Events Tab ── */
 function EventsTab({ items }) {
   const [showForm, setShowForm] = useState(false);
-  const [form,     setForm]     = useState({ icon:'🎊', title:'', date:'', desc:'', color:'orange' });
+  const [form,     setForm]     = useState({ category:'🎊 Festival / Celebration', icon:'🎊', title:'', date:'', desc:'', color:'orange' });
   const [imageUrl, setImageUrl] = useState('');
   const [saving,   setSaving]   = useState(false);
+
+  function handleCategory(label) {
+    const cat = EVENT_CATEGORIES.find(c => c.label === label);
+    if (cat) setForm(f => ({ ...f, category: label, icon: cat.icon, color: cat.color }));
+  }
 
   async function handleSave(e) {
     e.preventDefault(); setSaving(true);
     try {
       await addDoc(collection(db,'events'), { ...form, imageUrl, createdAt: serverTimestamp() });
       setShowForm(false);
-      setForm({ icon:'🎊', title:'', date:'', desc:'', color:'orange' });
+      setForm({ category:'🎊 Festival / Celebration', icon:'🎊', title:'', date:'', desc:'', color:'orange' });
       setImageUrl('');
     } catch (_) {}
     setSaving(false);
@@ -936,48 +956,43 @@ function EventsTab({ items }) {
   return (
     <div>
       <div className="admin-section-hdr">
-        <h2 className="admin-section-title">📅 Upcoming Events ({items.length})</h2>
+        <h2 className="admin-section-title">📅 Village Events &amp; News ({items.length})</h2>
         <button className="admin-add-btn" onClick={() => setShowForm(true)}>＋ Add Event</button>
       </div>
-      <p className="admin-hint">Events appear on the Home page with photos for all villagers.</p>
+      <p className="admin-hint">Events appear on the Home page. Add marriages, news, festivals, health camps, etc.</p>
 
       {showForm && (
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">📅 Add Event</h2>
+              <h2 className="modal-title">📅 Add Village Event / News</h2>
               <button className="modal-close" onClick={() => setShowForm(false)}>✕</button>
             </div>
             <form className="modal-body" onSubmit={handleSave}>
               <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Icon</label>
-                  <input className="form-input" value={form.icon} onChange={e => setForm(f=>({...f,icon:e.target.value}))} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Color</label>
-                  <select className="form-input" value={form.color} onChange={e => setForm(f=>({...f,color:e.target.value}))}>
-                    <option>orange</option><option>green</option><option>blue</option>
-                    <option>red</option><option>purple</option>
+                <div className="form-group form-span-2">
+                  <label className="form-label">Category *</label>
+                  <select className="form-input" value={form.category} onChange={e => handleCategory(e.target.value)}>
+                    {EVENT_CATEGORIES.map(c => <option key={c.label} value={c.label}>{c.label}</option>)}
                   </select>
                 </div>
                 <div className="form-group form-span-2">
                   <label className="form-label">Title *</label>
-                  <input className="form-input" value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))} required />
+                  <input className="form-input" value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))} required placeholder="e.g. Raju & Sita Marriage Invitation" />
                 </div>
                 <div className="form-group form-span-2">
                   <label className="form-label">Date</label>
-                  <input className="form-input" value={form.date} onChange={e => setForm(f=>({...f,date:e.target.value}))} placeholder="e.g. Mar 10–12, 2026" />
+                  <input className="form-input" value={form.date} onChange={e => setForm(f=>({...f,date:e.target.value}))} placeholder="e.g. Apr 5, 2026" />
                 </div>
                 <div className="form-group form-span-2">
-                  <label className="form-label">Description</label>
-                  <textarea className="form-input" rows={3} value={form.desc} onChange={e => setForm(f=>({...f,desc:e.target.value}))} />
+                  <label className="form-label">Description / Details</label>
+                  <textarea className="form-input" rows={4} value={form.desc} onChange={e => setForm(f=>({...f,desc:e.target.value}))} placeholder="Venue, time, contact details…" />
                 </div>
                 <ImageUploadField imageUrl={imageUrl} setImageUrl={setImageUrl} folder="events" />
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>Cancel</button>
-                <button type="submit" className="btn-save" disabled={saving}>{saving ? 'Saving…' : '💾 Add'}</button>
+                <button type="submit" className="btn-save" disabled={saving}>{saving ? 'Saving…' : '💾 Post Event'}</button>
               </div>
             </form>
           </div>
@@ -990,6 +1005,7 @@ function EventsTab({ items }) {
             {item.imageUrl && <img src={item.imageUrl} alt="" style={{ width:60, height:60, objectFit:'cover', borderRadius:8, flexShrink:0 }} />}
             {!item.imageUrl && <span className="admin-ev-icon">{item.icon}</span>}
             <div className="admin-ev-body">
+              {item.category && <span style={{ fontSize:'0.7rem', background:'#f3f4f6', borderRadius:6, padding:'2px 8px', fontWeight:700, color:'#555', marginBottom:4, display:'inline-block' }}>{item.category}</span>}
               <strong>{item.title}</strong>
               <p>{item.desc}</p>
               <small>{item.date}</small>
@@ -997,7 +1013,7 @@ function EventsTab({ items }) {
             <button className="admin-del-btn" onClick={() => window.confirm('Delete?') && deleteDoc(doc(db,'events',item.id)).catch(()=>{})}>🗑️</button>
           </div>
         ))}
-        {items.length === 0 && <div className="admin-empty">No events. Add one above.</div>}
+        {items.length === 0 && <div className="admin-empty">No events posted yet. Add marriages, news, festivals, health camps above.</div>}
       </div>
     </div>
   );
