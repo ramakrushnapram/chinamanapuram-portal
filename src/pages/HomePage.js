@@ -46,6 +46,35 @@ const DEFAULT_ANNOUNCEMENTS = [
   { id:6, tag:'notice', badge:'notice', icon:'🏆', title:'Swachh Gram Award 2026',            desc:'Chinamanapuram has been shortlisted for Swachh Gram Award 2026! Let us keep our village clean and win this honour for all of us.', date:'5 Mar 2026' },
 ];
 
+/* ── National & Telugu Leader Birthdays / Death Anniversaries ── */
+const LEADER_DAYS = [
+  { id:'ntr_death',     mm:'01', dd:'18', type:'death',    name:'N.T. Rama Rao (NTR)',              role:'Telugu Cinema Legend & CM, Andhra Pradesh', icon:'🎬', color:'#991b1b', desc:'NTR Memorial Day – Telugu legend and founder of Telugu Desam Party passed away Jan 18, 1996. His work in Telugu cinema is immortal.' },
+  { id:'sc_bose_bd',    mm:'01', dd:'23', type:'birthday', name:'Netaji Subhas Chandra Bose',        role:'Freedom Fighter & INA Founder',              icon:'⚔️', color:'#1e40af', desc:'Parakram Diwas – Netaji was born Jan 23, 1897. "Give me blood and I will give you freedom." His INA fought for India\'s independence.' },
+  { id:'gandhi_death',  mm:'01', dd:'30', type:'death',    name:'Mahatma Gandhi',                    role:'Father of the Nation',                       icon:'🕊️', color:'#374151', desc:'Martyr\'s Day (Shaheed Diwas) – Bapu was assassinated on Jan 30, 1948. Observed with 2-minute silence across India.' },
+  { id:'bhagat_death',  mm:'03', dd:'23', type:'death',    name:'Bhagat Singh, Rajguru & Sukhdev',   role:'Revolutionary Freedom Fighters',             icon:'🙏', color:'#dc2626', desc:'Shaheed Diwas – These brave martyrs were hanged by British on March 23, 1931. "They may kill me, but they cannot kill my ideas."' },
+  { id:'ambed_bd',      mm:'04', dd:'14', type:'birthday', name:'Dr. B.R. Ambedkar',                 role:'Architect of Indian Constitution',            icon:'📜', color:'#1d4ed8', desc:'Ambedkar Jayanti – Dr. Babasaheb Ambedkar was born Apr 14, 1891. He fought against caste discrimination and drafted our Constitution.' },
+  { id:'kv_bd',         mm:'04', dd:'16', type:'birthday', name:'Kandukuri Veeresalingam',           role:'Telugu Social Reformer & Writer',             icon:'✍️', color:'#065f46', desc:'Kandukuri Jayanti – Born Apr 16, 1848. Pioneer of women\'s education, widow remarriage, and social reform in Andhra Pradesh.' },
+  { id:'alluri_bd',     mm:'05', dd:'04', type:'birthday', name:'Alluri Sitarama Raju',              role:'Tribal Freedom Fighter, AP',                 icon:'🏹', color:'#92400e', desc:'Alluri Jayanti – Hero of the Rampa Rebellion (1922–24). Fought for tribal rights against the British in the forests of Andhra Pradesh.' },
+  { id:'ntr_bd',        mm:'05', dd:'28', type:'birthday', name:'N.T. Rama Rao (NTR)',              role:'Telugu Cinema Legend & CM, Andhra Pradesh', icon:'🎬', color:'#1e40af', desc:'NTR Jayanti – Born May 28, 1923. Starred in 300+ films, mostly as Lord Krishna and Ram. Became CM of AP in 1983.' },
+  { id:'ysr_bd',        mm:'07', dd:'08', type:'birthday', name:'Y.S. Rajasekhara Reddy (YSR)',     role:'Former Chief Minister, Andhra Pradesh',       icon:'💚', color:'#166534', desc:'YSR Jayanti – Beloved CM who brought Rajiv Arogyasri health scheme, Indiramma housing, and transformed rural AP. Born Jul 8, 1949.' },
+  { id:'bhagat_bd',     mm:'09', dd:'28', type:'birthday', name:'Bhagat Singh',                     role:'Revolutionary Freedom Fighter',               icon:'✊', color:'#dc2626', desc:'Bhagat Singh Jayanti – Born Sep 28, 1907. Gave his life for India\'s freedom at age 23. "Inquilab Zindabad!"' },
+  { id:'ysr_death',     mm:'09', dd:'02', type:'death',    name:'Y.S. Rajasekhara Reddy (YSR)',     role:'Former Chief Minister, Andhra Pradesh',       icon:'💚', color:'#166534', desc:'YSR Memorial Day – Beloved CM passed away in a helicopter crash Sep 2, 2009. His schemes helped millions of families in AP.' },
+  { id:'gandhi_bd',     mm:'10', dd:'02', type:'birthday', name:'Mahatma Gandhi',                   role:'Father of the Nation',                       icon:'🕊️', color:'#374151', desc:'Gandhi Jayanti (National Holiday) – Born Oct 2, 1869. "Be the change you wish to see in the world." – Mahatma Gandhi.' },
+  { id:'kalam_bd',      mm:'10', dd:'15', type:'birthday', name:'Dr. A.P.J. Abdul Kalam',          role:'Former President & Missile Man of India',     icon:'🚀', color:'#7c3aed', desc:'World Students Day – Born Oct 15, 1931. "Dream, Dream, Dream. Dreams transform into thoughts and thoughts result in action." – Kalam.' },
+  { id:'patel_bd',      mm:'10', dd:'31', type:'birthday', name:'Sardar Vallabhbhai Patel',         role:'Iron Man of India',                           icon:'🦾', color:'#b45309', desc:'Rashtriya Ekta Diwas – Born Oct 31, 1875. Unified 562 princely states into one India. Statue of Unity is the world\'s tallest statue.' },
+  { id:'nehru_bd',      mm:'11', dd:'14', type:'birthday', name:'Jawaharlal Nehru',                 role:'First Prime Minister of India',               icon:'🌹', color:'#1d4ed8', desc:'Children\'s Day (Bal Diwas) – Born Nov 14, 1889. Nehru\'s birthday celebrated as Children\'s Day. "Children are the future of India."' },
+  { id:'ambedkar_death',mm:'12', dd:'06', type:'death',    name:'Dr. B.R. Ambedkar',               role:'Architect of Indian Constitution',            icon:'📜', color:'#1d4ed8', desc:'Mahaparinirvan Diwas – Dr. Ambedkar passed away Dec 6, 1956. Lakhs gather at Chaitya Bhoomi, Mumbai to pay tribute.' },
+  { id:'potti_death',   mm:'12', dd:'16', type:'death',    name:'Potti Sriramulu',                  role:'Telugu Martyr, Andhra State Founder',         icon:'🌟', color:'#7c3aed', desc:'Potti Sriramulu Martyrdom Day – He fasted unto death for a separate Telugu-speaking state. AP was formed after his sacrifice on Dec 16, 1952.' },
+];
+
+function nextOccurrence(mm, dd) {
+  const today = new Date();
+  const y = today.getFullYear();
+  const d = new Date(`${y}-${mm}-${dd}`);
+  if (d >= today) return d;
+  return new Date(`${y + 1}-${mm}-${dd}`);
+}
+
 /* Telugu & National festival calendar 2026-2027 — verified Google dates */
 const FESTIVAL_CALENDAR = [
   {
@@ -913,6 +942,62 @@ export default function HomePage() {
                 })}
               </div>
             )}
+          </section>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════
+          LEADERS – BIRTHDAYS & ANNIVERSARIES
+      ══════════════════════════════════════ */}
+      {(() => {
+        const sorted = [...LEADER_DAYS]
+          .map(l => ({ ...l, next: nextOccurrence(l.mm, l.dd) }))
+          .sort((a, b) => a.next - b.next);
+        /* Show next 8 upcoming */
+        const upcoming = sorted.slice(0, 8);
+        return (
+          <section style={{ padding:'0 0 8px' }}>
+            <div className="section-header" style={{ marginBottom:16 }}>
+              <h2 className="section-title">🎂 Leaders – Birthdays &amp; Anniversaries</h2>
+            </div>
+            <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:10, scrollbarWidth:'thin' }}>
+              {upcoming.map(l => {
+                const daysLeft = Math.round((l.next - new Date()) / 86400000);
+                const isToday  = daysLeft === 0;
+                const isSoon   = daysLeft <= 7;
+                return (
+                  <div key={l.id} style={{
+                    minWidth:180, maxWidth:180, background:'#fff', borderRadius:14,
+                    boxShadow:'0 2px 12px rgba(0,0,0,0.08)', overflow:'hidden',
+                    border: isToday ? `2px solid ${l.color}` : '1.5px solid #e5e7eb',
+                    flexShrink:0,
+                  }}>
+                    {/* Colored header */}
+                    <div style={{ background: l.color, padding:'14px 12px 10px', textAlign:'center', position:'relative' }}>
+                      <div style={{ fontSize:'2rem' }}>{l.icon}</div>
+                      <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.85)', marginTop:4, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                        {l.type === 'birthday' ? '🎂 Birthday' : '🕊️ Anniversary'}
+                      </div>
+                      {isToday && (
+                        <div style={{ position:'absolute', top:6, right:6, background:'#fff', color:l.color, fontSize:'0.6rem', fontWeight:900, padding:'2px 6px', borderRadius:99, letterSpacing:'0.04em' }}>TODAY</div>
+                      )}
+                      {!isToday && isSoon && (
+                        <div style={{ position:'absolute', top:6, right:6, background:'rgba(255,255,255,0.2)', color:'#fff', fontSize:'0.6rem', fontWeight:800, padding:'2px 6px', borderRadius:99 }}>{daysLeft}d</div>
+                      )}
+                    </div>
+                    {/* Body */}
+                    <div style={{ padding:'10px 12px 12px' }}>
+                      <div style={{ fontWeight:800, fontSize:'0.8rem', color:'#111', lineHeight:1.3, marginBottom:4 }}>{l.name}</div>
+                      <div style={{ fontSize:'0.68rem', color:'#666', lineHeight:1.3, marginBottom:6 }}>{l.role}</div>
+                      <div style={{ fontSize:'0.72rem', color: isToday ? l.color : '#888', fontWeight: isToday ? 700 : 600 }}>
+                        📅 {l.next.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
+                      </div>
+                      <div style={{ fontSize:'0.68rem', color:'#555', marginTop:6, lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{l.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </section>
         );
       })()}
